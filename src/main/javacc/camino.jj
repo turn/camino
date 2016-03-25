@@ -1,0 +1,400 @@
+/**
+ * Copyright (C) 2014-2016, Turn Inc. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ */
+options {
+	IGNORE_CASE = false;
+	STATIC = false;
+	LOOKAHEAD = 1;
+	FORCE_LA_CHECK = true;
+}
+
+PARSER_BEGIN(Parser)
+
+package com.turn.camino.lang.parser;
+
+import com.turn.camino.lang.ast.*;
+
+import java.util.List;
+import java.util.ArrayList;
+
+/**
+ * Parser class for Camino expression language
+ *
+ * @author llo
+ */
+public class Parser {
+
+	/**
+	 * Returns location of token
+	 *
+	 * @param token
+	 * @return
+	 */
+	public Location locationOf(Token token) {
+		return new Location(token.beginLine, token.beginColumn);
+	}
+
+	/**
+	 * Trim quotes
+	 */
+	public String trimQuotes(String text) {
+		return text.substring(0, text.length() - 1).substring(1);
+	}
+
+}
+
+PARSER_END(Parser)
+
+/**
+ * Top-level text
+ */
+<DEFAULT> TOKEN:
+{
+	<TEXT: (~["<"] | "<" ~["%"])+>
+}
+
+/**
+ * Transition into expression language
+ */
+<DEFAULT> TOKEN:
+{
+	<EL_START: "<%="> : EL
+}
+
+/**
+ * Expression language tokens
+ */
+<EL> TOKEN:
+{
+	<#LETTER: ["a"-"z", "A"-"Z"]>
+|	<#DIGIT: ["0"-"9"]>
+|	<IF: "if">
+|	<IDENTIFIER: ( <LETTER> | "_" | "$" ) ( <LETTER> | <DIGIT> | "_" | "$" )*>
+|	<INTEGER: ( <DIGIT> )+ >
+|	<#FLOAT: <INTEGER> "." (<DIGIT>)* >
+|	<NUMBER: <FLOAT> ( ["e","E"] <INTEGER> )? >
+|	<STRING: "'" (~["'"] | "''")* "'">
+|	<OPEN_PAREN: "(">
+|	<CLOSE_PAREN: ")">
+|	<OPEN_BRACKET: "[">
+|	<CLOSE_BRACKET: "]">
+|	<OPEN_BRACELET: "{">
+|	<CLOSE_BRACELET: "}">
+|	<DOT: ".">
+|	<COMMA: ",">
+|	<MINUS: "-">
+|	<COLON: ":">
+}
+
+/**
+ * Exit token from expression language
+ */
+<EL> TOKEN:
+{
+	<EL_END: "%>"> : DEFAULT
+}
+
+/**
+ * Skip white space inside expression language
+ */
+<EL> SKIP:
+{
+	" "
+|	"\t"
+|	"\r"
+|	"\n"
+}
+
+/**
+ * Parses a block
+ */
+Block block():
+{
+	List<Expression> expressions = new ArrayList<Expression>();
+	Token token;
+	Expression expr;
+}
+{
+	(
+		token = <TEXT>
+		{
+			expressions.add(new StringLiteral(locationOf(token), token.toString()));
+		}
+	|
+		<EL_START> expr = expression() <EL_END>
+		{
+			expressions.add(expr);
+		}
+	)*
+	{
+		Location location = new Location(1, 1);
+		if (!expressions.isEmpty()) {
+			location = expressions.get(0).getLocation();
+		}
+		return new Block(location, expressions);
+	}
+}
+
+/**
+ * Parses an expression
+ */
+Expression expression():
+{
+	Expression expr;
+}
+{
+	// if operator
+	expr = ternaryIf()
+	{
+		return expr;
+	}
+|	// member access
+	expr = reference()
+	{
+		return expr;
+	}
+|	// string literal
+	expr = stringLiteral()
+	{
+		return expr;
+	}
+|	// number literal
+	expr = numberLiteral()
+	{
+		return expr;
+	}
+|	// list Literal
+	expr = listLiteral()
+	{
+		return expr;
+	}
+|	// dictionary Literal
+	expr = dictionaryLiteral()
+	{
+		return expr;
+	}
+}
+
+/**
+ * General reference to data
+ */
+Expression reference():
+{
+	Expression reference;
+	Expression memberRef;
+}
+{
+	reference = identifierOrFunctionCall()
+	(
+		<DOT> memberRef = identifierOrFunctionCall()
+		{
+			reference = new MemberAccess(memberRef.getLocation(), reference, memberRef);
+		}
+	)*
+	{
+		return reference;
+	}
+}
+
+/**
+ * Parses an identifier or a function call
+ */
+Expression identifierOrFunctionCall():
+{
+	Identifier identifier;
+	List<Expression> arguments;
+	Expression output;
+	Expression key;
+	Token token;
+}
+{
+	// identifier at this point
+	identifier = identifier()
+	{
+		output = identifier;
+	}
+	[
+		// we have a function call
+		<OPEN_PAREN> arguments = expressionList() <CLOSE_PAREN>
+		{
+			output = new FunctionCall(identifier.getLocation(), identifier, arguments);
+		}
+	]
+	(
+		// collection access
+		token = <OPEN_BRACKET> key = expression() <CLOSE_BRACKET>
+		{
+			output = new CollectionAccess(locationOf(token), output, key);
+		}
+	)*
+	{
+		return output;
+	}
+}
+
+/**
+ * Parses an identifier (such as "a.b.c")
+ */
+Identifier identifier():
+{
+	Token value;
+}
+{
+	value = <IDENTIFIER>
+	{
+		return new Identifier(locationOf(value), value.toString());
+	}
+}
+
+/**
+ * Parses a list of aliased expressions
+ */
+List<Expression> expressionList():
+{
+	List<Expression> exprList = new ArrayList<Expression>();
+	Expression expr;
+}
+{
+	[
+		expr = expression()
+		{
+			exprList.add(expr);
+		}
+		(
+			<COMMA> expr = expression()
+			{
+				exprList.add(expr);
+			}
+		)*
+	]
+	{
+		return exprList;
+	}
+}
+
+/**
+ * Ternary if operator
+ */
+TernaryIf ternaryIf():
+{
+	Token token;
+	Expression condition;
+	Expression thenValue;
+	Expression elseValue;
+}
+{
+	token = <IF> <OPEN_PAREN> condition = expression() <COMMA> thenValue = expression()
+		<COMMA> elseValue = expression() <CLOSE_PAREN>
+	{
+		return new TernaryIf(locationOf(token), condition, thenValue, elseValue);
+	}
+}
+
+/**
+ * Parses a string literal
+ */
+StringLiteral stringLiteral():
+{
+	Token value;
+}
+{
+	value = <STRING>
+	{
+		return new StringLiteral(locationOf(value), trimQuotes(value.toString()));
+	}
+}
+
+/**
+ * Parses a number, either integer or floating point
+ */
+NumberLiteral numberLiteral():
+{
+	Token minus = null, value;
+	boolean negative = false;
+}
+{
+	[
+		minus = <MINUS>
+		{
+			negative = true;
+		}
+	]
+	(
+		value = <INTEGER>
+		{
+			long longValue = Long.parseLong(value.toString());
+			if (negative) {
+				longValue = -longValue;
+			}
+			return new LongLiteral(locationOf(minus != null ? minus : value), longValue);
+		}
+	|	value = <NUMBER>
+		{
+			double doubleValue = Double.parseDouble(value.toString());
+			if (negative) {
+				doubleValue = -doubleValue;
+			}
+			return new DoubleLiteral(locationOf(minus != null ? minus : value), doubleValue);
+		}
+	)
+}
+
+/**
+ * Parses a list literal
+ */
+ListLiteral listLiteral():
+{
+	Token token;
+	List<Expression> elements;
+}
+{
+	token = <OPEN_BRACKET> elements = expressionList() <CLOSE_BRACKET>
+	{
+		return new ListLiteral(locationOf(token), elements);
+	}
+}
+
+/**
+ * Parses a dictionary literal
+ */
+DictionaryLiteral dictionaryLiteral():
+{
+	Token token;
+	Expression key, value;
+	DictionaryLiteral.Entry entry;
+	DictionaryLiteral.Builder builder;
+}
+{
+	token = <OPEN_BRACELET>
+	{
+		builder = new DictionaryLiteral.Builder(locationOf(token));
+	}
+	[
+		key = expression() <COLON> value = expression()
+		{
+			builder.put(key, value);
+		}
+		(
+			<COMMA> key = expression() <COLON> value = expression()
+			{
+				builder.put(key, value);
+			}
+		)*
+	]
+	<CLOSE_BRACELET>
+	{
+		return builder.build();
+	}
+}
+

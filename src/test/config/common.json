@@ -1,0 +1,13 @@
+{
+	"properties": {
+		"user": "llo",
+		"score": "4.6"
+	},
+	"paths": [
+		{
+			"name": "home",
+			"value": "/my/<%=user%>/path",
+			"tags": { "path": "home" }
+		}
+	]
+}

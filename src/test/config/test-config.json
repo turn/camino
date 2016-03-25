@@ -1,0 +1,33 @@
+{
+	"includes": [
+		"common.json"
+	],
+	"properties": {
+		"score": "2.2",
+		"type": "uint64",
+		"values": "<%=['a','b']%>"
+	},
+	"paths": [
+		{
+			"name": "data",
+			"value": "/my/data",
+			"tags": { "path": "data" }
+		}
+	],
+	"repeats": [
+		{
+			"var": "value",
+			"list": "<%=values%>",
+			"paths": [
+				{
+					"name": "help_<%=value%>",
+					"value": "/help-docs/<%=value%>",
+					"tags": {
+						"path": "help",
+						"subpath": "<%=value%>"
+					}
+				}
+			]
+		}
+	]
+}
