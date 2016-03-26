@@ -14,11 +14,7 @@
  */
 package com.turn.camino;
 
-import com.google.common.collect.ImmutableList;
 import com.turn.camino.config.*;
-import com.turn.camino.lang.ast.FunctionCall;
-import com.turn.camino.lang.ast.Identifier;
-import com.turn.camino.lang.ast.Location;
 import com.turn.camino.render.RenderException;
 import com.turn.camino.render.Renderer;
 import com.turn.camino.render.TimeValue;
@@ -29,10 +25,7 @@ import com.turn.camino.util.Validation;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -84,35 +77,48 @@ public class Camino {
 
 		Renderer renderer = env.getRenderer();
 		Context context = env.newContext();
+		boolean shutdownExecutor = false;
 		ExecutorService executorService = env.getExecutorService();
 		List<Future<PathMetrics>> futures = Lists.newLinkedList();
 
-		// render properties
-		for (Property property : config.getProperties()) {
-			renderProperty(property, renderer, context);
-		}
+		try {
+			// if executor service was not specified, create a single-thread executor
+			if (executorService == null ){
+				executorService = Executors.newSingleThreadExecutor();
+				shutdownExecutor = true;
+			}
 
-		// render and materialize paths and compute metrics
-		processPathMetrics(config.getPaths(), renderer, context, executorService,
-				futures);
+			// render properties
+			for (Property property : config.getProperties()) {
+				renderProperty(property, renderer, context);
+			}
 
-		// process repeats
-		for (Repeat repeat : config.getRepeats()) {
-			processRepeat(repeat, renderer, context, executorService, futures);
-		}
+			// render and materialize paths and compute metrics
+			processPathMetrics(config.getPaths(), renderer, context, executorService,
+					futures);
 
-		// return computed metrics
-		List<PathMetrics> pathMetrics = Lists.newArrayListWithCapacity(futures.size());
-		for (Future<PathMetrics> future : futures) {
-			try {
-				pathMetrics.add(future.get());
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			} catch (ExecutionException e) {
-				e.printStackTrace();
+			// process repeats
+			for (Repeat repeat : config.getRepeats()) {
+				processRepeat(repeat, renderer, context, executorService, futures);
+			}
+
+			// return computed metrics
+			List<PathMetrics> pathMetrics = Lists.newArrayListWithCapacity(futures.size());
+			for (Future<PathMetrics> future : futures) {
+				try {
+					pathMetrics.add(future.get());
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				} catch (ExecutionException e) {
+					e.printStackTrace();
+				}
+			}
+			return pathMetrics;
+		} finally {
+			if (shutdownExecutor) {
+				executorService.shutdown();
 			}
 		}
-		return pathMetrics;
 	}
 
 	/**

@@ -21,6 +21,8 @@ import com.turn.camino.config.Tag;
 import com.turn.camino.render.RenderException;
 
 import java.io.*;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -40,7 +42,7 @@ import org.apache.hadoop.fs.FileSystem;
  */
 public class CaminoApp {
 
-	private List<File> caminoConfigPaths = Lists.newLinkedList();
+	private List<String> caminoConfigPaths = Lists.newLinkedList();
 	private File outputPath = null;
 	private String fsUri = "file:///";
 
@@ -56,7 +58,7 @@ public class CaminoApp {
 			} else if ("-o".equals(args[i])) {
 				this.outputPath = new File(args[++i]);
 			} else {
-				this.caminoConfigPaths.add(new File(args[i]));
+				this.caminoConfigPaths.add(args[i]);
 			}
 		}
 	}
@@ -82,31 +84,33 @@ public class CaminoApp {
 			PrintWriter output = new PrintWriter(new OutputStreamWriter(os, "UTF-8"));
 
 			// create environment
-			Config config = readConfig();
 			FileSystem fileSystem = getFileSystem();
 			executorService = Executors.newSingleThreadExecutor();
 			Env env = new EnvBuilder().withFileSystem(fileSystem)
 					.withExecutorService(executorService).build();
 
-			// get metrics
-			Camino camino = new Camino(env, config);
-			List<PathMetrics> pathMetricsList = new ArrayList<>(camino.getPathMetrics());
-			for (PathMetrics pathMetrics : pathMetricsList) {
-				if (pathMetrics.getError() != null) {
-					output.println(String.format("Path %s has error %s",
-							pathMetrics.getPath().getName(), pathMetrics.getError().getMessage()));
-					continue;
-				}
-				output.println(String.format("%s (%s)", pathMetrics.getPathStatus().getName(),
-						pathMetrics.getPathStatus().getValue()));
-				for (MetricDatum metricDatum : pathMetrics.getMetricData()) {
-					List<String> tags = Lists.newArrayList();
-					for (Tag tag : metricDatum.getMetricId().getTags()) {
-						tags.add(String.format("%s=%s", tag.getKey(), tag.getValue()));
+			for (String caminoConfigPath : caminoConfigPaths) {
+				// get metrics
+				Config config = readConfig(caminoConfigPath);
+				Camino camino = new Camino(env, config);
+				List<PathMetrics> pathMetricsList = new ArrayList<>(camino.getPathMetrics());
+				for (PathMetrics pathMetrics : pathMetricsList) {
+					if (pathMetrics.getError() != null) {
+						output.println(String.format("Path %s has error %s",
+								pathMetrics.getPath().getName(), pathMetrics.getError().getMessage()));
+						continue;
 					}
-					output.println(String.format("\t%s (%s): %.0f",
-							metricDatum.getMetricId().getName(),
-							Joiner.on(' ').join(tags), metricDatum.getValue()));
+					output.println(String.format("%s (%s)", pathMetrics.getPathStatus().getName(),
+							pathMetrics.getPathStatus().getValue()));
+					for (MetricDatum metricDatum : pathMetrics.getMetricData()) {
+						List<String> tags = Lists.newArrayList();
+						for (Tag tag : metricDatum.getMetricId().getTags()) {
+							tags.add(String.format("%s=%s", tag.getKey(), tag.getValue()));
+						}
+						output.println(String.format("\t%s (%s): %.0f",
+								metricDatum.getMetricId().getName(),
+								Joiner.on(' ').join(tags), metricDatum.getValue()));
+					}
 				}
 			}
 
@@ -128,20 +132,16 @@ public class CaminoApp {
 	 * @return config
 	 * @throws IOException
 	 */
-	protected Config readConfig() throws IOException {
-		ConfigBuilder configBuilder = new ConfigBuilder();
-		for (File caminoConfigPath : caminoConfigPaths) {
-			Reader reader = null;
-			try {
-				reader = new InputStreamReader(new FileInputStream(caminoConfigPath), "UTF-8");
-				configBuilder.from(reader);
-			} finally {
-				if (reader != null) {
-					reader.close();
-				}
+	protected Config readConfig(String caminoConfigPath) throws IOException {
+		try {
+			URI location = new URI(caminoConfigPath);
+			if (location.getScheme() == null) {
+				location = new File(caminoConfigPath).toURI();
 			}
+			return new ConfigBuilder().from(location).build();
+		} catch (URISyntaxException e) {
+			throw new IOException(e);
 		}
-		return configBuilder.build();
 	}
 
 	/**

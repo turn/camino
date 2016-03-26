@@ -142,27 +142,27 @@ public class ConfigBuilder {
 	}
 
 	/**
-	 * Build a config
+	 * Build a shallow config, not expanding included configs
 	 *
 	 * @return config instance
 	 */
-	public Config build() {
+	public Config buildLocal() {
 		return new Config(location, includeBuilder, ImmutableList.copyOf(propertyBuilder.values()),
 				pathBuilder, repeatBuilder);
 	}
 
 	/**
-	 * Expand a config by combining all included configs into one
+	 * Build a config by combining all included configs into one
 	 */
-	public Config expand() throws IOException {
+	public Config build() throws IOException {
 		if (includeBuilder.isEmpty()) {
-			return build();
+			return buildLocal();
 		}
 
 		ConfigBuilder expanded = ConfigBuilder.create();
 		for (String include : includeBuilder) {
 			URI inclLocation = resolveInclude(include, location);
-			Config inclConfig = create().from(inclLocation).expand();
+			Config inclConfig = create().from(inclLocation).build();
 			expanded.addProperties(inclConfig.getProperties());
 			expanded.addPaths(inclConfig.getPaths());
 			expanded.addRepeats(inclConfig.getRepeats());
@@ -171,7 +171,7 @@ public class ConfigBuilder {
 		expanded.addPaths(pathBuilder);
 		expanded.addRepeats(repeatBuilder);
 
-		return expanded.build();
+		return expanded.buildLocal();
 	}
 
 	/**

@@ -304,11 +304,15 @@ ConfigBuilder into a Config object.
 		.build();
 	Config config = new ConfigBuilder().from(uri).build();
 	Camino camino = new Camino(config, env);
-	List<PageMetrics> pageMetricsList = camino.getPageMetrics();
+	List<PathMetrics> pathMetricsList = camino.getPathMetrics();
 
-Note that file system and executor service are required in order to build
-an Env object. Standard caveats of external services apply, such as for
-example if you create the executor service you have to shut it down.
+Note that file system is required in order to build an Env object. The
+builder will throw an exception if it is not supplied. By default time zone
+is the local time zone. If no executor service is supplied, then Camino
+creates a temporary one each time getPathMetrics() is called.
+
+Standard caveats of external services apply, such as for example if you
+create and supply the executor service you have to shut it down.
 
 Also, ConfigBuilder provides programmatic ways to add properties, paths,
 metrics, and iterators.

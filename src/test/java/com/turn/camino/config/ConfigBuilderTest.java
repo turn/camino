@@ -20,11 +20,9 @@ import java.io.StringReader;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import org.testng.annotations.Test;
 
 import static org.testng.Assert.*;
@@ -47,17 +45,17 @@ public class ConfigBuilderTest {
 			"\"repeats\":[{\"var\":\"innerVar\",\"list\":\"innerList\"}]}]}";
 
 	/**
-	 * Test creating config from location
+	 * Test creating one-level config from location
 	 *
 	 * @throws IOException
 	 */
 	@Test
-	public void testFromLocation() throws IOException, URISyntaxException {
+	public void testFromLocationBuildLocal() throws IOException, URISyntaxException {
 		File root = new File(ConfigBuilderTest.class.getProtectionDomain().getCodeSource()
 				.getLocation().getPath()).getParentFile().getParentFile();
 		File file = new File(root, "src/test/config/test-config.json");
 		URI location = file.toURI();
-		Config config = ConfigBuilder.create().from(location).build();
+		Config config = ConfigBuilder.create().from(location).buildLocal();
 		assertEquals(config.getLocation(), location);
 		assertNotNull(config.getIncludes());
 		assertEquals(config.getIncludes().size(), 1);
@@ -65,18 +63,18 @@ public class ConfigBuilderTest {
 	}
 
 	/**
-	 * Test expanding a config
+	 * Test building a config recursively
 	 *
 	 * @throws IOException
 	 * @throws URISyntaxException
 	 */
 	@Test
-	public void testExpand() throws IOException, URISyntaxException {
+	public void testFromLocationBuildRecursive() throws IOException, URISyntaxException {
 		File root = new File(ConfigBuilderTest.class.getProtectionDomain().getCodeSource()
 				.getLocation().getPath()).getParentFile().getParentFile();
 		File file = new File(root, "src/test/config/test-config.json");
 		URI location = file.toURI();
-		Config config = ConfigBuilder.create().from(location).expand();
+		Config config = ConfigBuilder.create().from(location).build();
 		assertEquals(config.getProperties().size(), 4);
 		assertEquals(config.getProperties().get(0).getName(), "user");
 		assertEquals(config.getProperties().get(0).getValue(), "llo");
@@ -152,7 +150,7 @@ public class ConfigBuilderTest {
 	 * Test adding properties to config builder
 	 */
 	@Test
-	public void testAddProperties() {
+	public void testAddProperties() throws IOException {
 		Config config = ConfigBuilder.create()
 				.addProperties(Lists.newArrayList(
 						new Property("abc", "123"),
@@ -171,7 +169,7 @@ public class ConfigBuilderTest {
 	 * Test adding paths to config builder
 	 */
 	@Test
-	public void testAddPaths() {
+	public void testAddPaths() throws IOException {
 		Config config = ConfigBuilder.create()
 				.addPaths(Lists.newArrayList(
 						new Path("abc", "123", Lists.newArrayList(new Metric("m1",

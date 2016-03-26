@@ -21,7 +21,6 @@ import org.apache.hadoop.fs.FileSystem;
 
 import java.util.TimeZone;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * Builder for Env
@@ -84,7 +83,6 @@ public class EnvBuilder {
 	public Env build() {
 		npeValidation.requireNotNull(timeZone, Message.prefix("Time zone"));
 		npeValidation.requireNotNull(fileSystem, Message.prefix("File system"));
-		npeValidation.requireNotNull(executorService, Message.prefix("Executor service"));
 		return new EnvImpl(timeZone, fileSystem, executorService);
 	}
 

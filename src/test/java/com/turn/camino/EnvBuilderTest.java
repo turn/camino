@@ -68,12 +68,4 @@ public class EnvBuilderTest {
 		new EnvBuilder().build();
 	}
 
-	/**
-	 * Test not specifying executor service
-	 */
-	@Test(expectedExceptions = NullPointerException.class)
-	public void testMissingExecutorService() {
-		new EnvBuilder().withFileSystem(mock(FileSystem.class)).build();
-	}
-
 }

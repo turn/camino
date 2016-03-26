@@ -21,16 +21,14 @@ import com.turn.camino.render.Renderer;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.turn.camino.render.TimeValue;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -65,11 +63,20 @@ public class CaminoTest {
 		// mock environment
 		env = mock(Env.class);
 		when(env.getFileSystem()).thenReturn(fileSystem);
-		camino = new Camino(env, ConfigBuilder.create().build());
+		camino = new Camino(env, ConfigBuilder.create().buildLocal());
 
 		// create executor service
 		executorService = Executors.newSingleThreadExecutor();
 		when(env.getExecutorService()).thenReturn(executorService);
+	}
+
+	/**
+	 * Tear down environment
+	 * @throws IOException
+	 */
+	@AfterClass
+	public void tearDown() throws IOException {
+		executorService.shutdown();
 	}
 
 	/**
@@ -406,6 +413,27 @@ public class CaminoTest {
 	}
 
 	/**
+	 * Test processPathMetrics interaction with executor service and list of futures
+	 *
+	 * @throws IOException
+	 * @throws InvalidNameException
+	 * @throws WrongTypeException
+	 * @throws RenderException
+	 */
+	@Test
+	public void testProcessPathMetricsInteraction() throws IOException, InvalidNameException,
+			WrongTypeException, RenderException {
+		List<Path> paths = of(new Path("big_data", "/app/big_data"),
+				new Path("small_data", "/app/small_data"));
+		ExecutorService executorService = mock(ExecutorService.class);
+		List<Future<PathMetrics>> futures = mock(PathMetricsFutureList.class);
+		camino.processPathMetrics(paths, mock(Renderer.class), mock(Context.class),
+				executorService, futures);
+		verify(executorService, times(2)).submit(any(Callable.class));
+		verify(futures, times(2)).add(any(PathMetricsFuture.class));
+	}
+
+	/**
 	 * Test that default metrics are added for a single path
 	 */
 	@Test
@@ -626,7 +654,7 @@ public class CaminoTest {
 		List<Repeat> repeats = of(newRepeat("nom", "<%=list('foo','bar')%>",
 				new Path("do_<%=nom%>", "<%=root%>/<%=nom%>")));
 		Config config = ConfigBuilder.create().addProperties(properties).addPaths(paths)
-				.addRepeats(repeats).build();
+				.addRepeats(repeats).buildLocal();
 
 		// mock environment
 		Env env = mock(Env.class);
@@ -658,7 +686,7 @@ public class CaminoTest {
 		when(env.getRenderer()).thenReturn(renderer);
 
 		// set executor service
-		when(env.getExecutorService()).thenReturn(Executors.newSingleThreadExecutor());
+		when(env.getExecutorService()).thenReturn(executorService);
 
 		// call camino
 		Camino camino = new Camino(env, config);
@@ -698,6 +726,52 @@ public class CaminoTest {
 		assertEquals(pathMetrics.get(2).getMetricData().get(1).getValue(), sizeValue);
 		assertEquals(pathMetrics.get(2).getMetricData().get(2).getMetricId().getFullName(), "do_bar.count");
 		assertEquals(pathMetrics.get(2).getMetricData().get(2).getValue(), countValue);
+	}
+
+	/**
+	 * Test calling gethPathMetrics without specified executor service
+	 *
+	 * @throws InvalidNameException
+	 * @throws WrongTypeException
+	 * @throws RenderException
+	 * @throws IOException
+	 */
+	@Test
+	public void testGetPathMetricsInternalExecutor() throws InvalidNameException, WrongTypeException,
+			RenderException, IOException {
+
+		// test data
+		double ageValue = 12340000;
+		double sizeValue = 10000;
+		double countValue = 5;
+		Config config = ConfigBuilder.create().addPaths(of(new Path("path", "value"))).buildLocal();
+
+		// mock environment
+		Env env = mock(Env.class);
+		mockFileSystem(env);
+		Context context = mockGlobalContext(env);
+		List<Context> childContexts = mockChildContexts(1, context, context, env);
+		mockChildContexts(3, childContexts.get(0), context, env);
+
+		// mock renderer
+		Renderer renderer = mock(Renderer.class);
+		when(renderer.render(eq("path"), any(Context.class))).thenReturn("path");
+		when(renderer.render(eq("value"), any(Context.class))).thenReturn("value");
+		mockMetricFunction(renderer, "age", ageValue);
+		mockMetricFunction(renderer, "size", sizeValue);
+		mockMetricFunction(renderer, "count", countValue);
+		when(env.getRenderer()).thenReturn(renderer);
+
+		Camino camino = new Camino(env, config);
+		List<PathMetrics> pathMetrics = camino.getPathMetrics();
+		assertEquals(pathMetrics.size(), 1);
+		assertEquals(pathMetrics.get(0).getMetricData().size(), 3);
+		assertEquals(pathMetrics.get(0).getMetricData().get(0).getMetricId().getName(), "age");
+		assertEquals(pathMetrics.get(0).getMetricData().get(0).getValue(), ageValue);
+		assertEquals(pathMetrics.get(0).getMetricData().get(1).getMetricId().getName(), "size");
+		assertEquals(pathMetrics.get(0).getMetricData().get(1).getValue(), sizeValue);
+		assertEquals(pathMetrics.get(0).getMetricData().get(2).getMetricId().getName(), "count");
+		assertEquals(pathMetrics.get(0).getMetricData().get(2).getValue(), countValue);
 	}
 
 	/**
@@ -867,5 +941,9 @@ public class CaminoTest {
 		when(renderer.render(contains("<%=" + function + "("), any(Context.class)))
 				.thenReturn(metricValue);
 	}
+
+	interface PathMetricsFuture extends Future<PathMetrics> {}
+
+	interface PathMetricsFutureList extends List<Future<PathMetrics>> {}
 
 }
