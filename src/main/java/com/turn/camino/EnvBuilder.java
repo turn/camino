@@ -21,6 +21,7 @@ import org.apache.hadoop.fs.FileSystem;
 
 import java.util.TimeZone;
 import java.util.concurrent.ExecutorService;
+import java.util.logging.Logger;
 
 /**
  * Builder for Env
@@ -32,8 +33,10 @@ public class EnvBuilder {
 	private FileSystem fileSystem;
 	private TimeZone timeZone = TimeZone.getDefault();
 	private ExecutorService executorService;
+	private ErrorHandler errorHandler = new LoggingErrorHandler(Logger.getLogger(
+			Camino.class.getCanonicalName()));
 	private Validation<NullPointerException> npeValidation =
-			new Validation<NullPointerException>(
+			new Validation<>(
 					new MessageExceptionFactory<NullPointerException>() {
 							@Override
 							public NullPointerException newException(String message) {
@@ -75,6 +78,17 @@ public class EnvBuilder {
 	}
 
 	/**
+	 * Sets error handler
+	 *
+	 * @param errorHandler error handler
+	 * @return this
+	 */
+	public EnvBuilder withErrorHandler(ErrorHandler errorHandler) {
+		this.errorHandler = errorHandler;
+		return this;
+	}
+
+	/**
 	 * Builds environment
 	 *
 	 * @return Env object
@@ -83,7 +97,7 @@ public class EnvBuilder {
 	public Env build() {
 		npeValidation.requireNotNull(timeZone, Message.prefix("Time zone"));
 		npeValidation.requireNotNull(fileSystem, Message.prefix("File system"));
-		return new EnvImpl(timeZone, fileSystem, executorService);
+		return new EnvImpl(timeZone, fileSystem, executorService, errorHandler);
 	}
 
 }

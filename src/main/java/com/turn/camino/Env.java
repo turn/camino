@@ -68,5 +68,12 @@ public interface Env {
 	 * @return executor service
 	 */
 	public ExecutorService getExecutorService();
+
+	/**
+	 * Get error handler
+	 *
+	 * @return error handler
+	 */
+	public ErrorHandler getErrorHandler();
 	
 }

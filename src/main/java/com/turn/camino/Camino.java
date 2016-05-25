@@ -107,10 +107,8 @@ public class Camino {
 			for (Future<PathMetrics> future : futures) {
 				try {
 					pathMetrics.add(future.get());
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				} catch (ExecutionException e) {
-					e.printStackTrace();
+				} catch (Throwable error) {
+					env.getErrorHandler().onWaitError(error);
 				}
 			}
 			return pathMetrics;
@@ -198,8 +196,9 @@ public class Camino {
 				public PathMetrics call() throws Exception {
 					try {
 						return computePathMetrics(path, renderer, context);
-					} catch (Exception e) {
-						return new PathMetrics(path, null, null, e);
+					} catch (Throwable error) {
+						context.getEnv().getErrorHandler().onPathError(path, error);
+						return new PathMetrics(path, null, null);
 					}
 				}
 			};
@@ -238,7 +237,7 @@ public class Camino {
 			MetricDatum metricDatum = computeMetric(metric, pathStatus, renderer, context);
 			metricData.add(metricDatum);
 		}
-		return new PathMetrics(path, pathStatus, metricData, null);
+		return new PathMetrics(path, pathStatus, metricData);
 	}
 
 	/**
@@ -289,30 +288,35 @@ public class Camino {
 	 * @throws RenderException
 	 * @throws IOException
 	 */
-	protected void processRepeat(Repeat repeat, Renderer renderer, Context context,
-			ExecutorService executorService, List<Future<PathMetrics>> futures)
+	protected void processRepeat(final Repeat repeat, final Renderer renderer, final Context context,
+			final ExecutorService executorService, final List<Future<PathMetrics>> futures)
 			throws InvalidNameException, WrongTypeException, RenderException, IOException {
 
-		// render repeat
-		checkIdentifier(repeat.getVar());
-		List<?> list = validation.requireType(renderer.render(repeat.getList(), context),
-				List.class, Message.prefix(repeat.getList()));
+		try {
+			// render repeat
+			checkIdentifier(repeat.getVar());
+			List<?> list = validation.requireType(renderer.render(repeat.getList(), context),
+					List.class, Message.prefix(repeat.getList()));
 
-		// iterate through list and process paths
-		for (Object value : list) {
+			// iterate through list and process paths
+			for (Object value : list) {
 
-			// create child context with list element
-			Context repeatContext = context.createChild();
-			repeatContext.setProperty(repeat.getVar(), value);
+				// create child context with list element
+				Context repeatContext = context.createChild();
+				repeatContext.setProperty(repeat.getVar(), value);
 
-			// process path and metrics
-			processPathMetrics(repeat.getPaths(), renderer, repeatContext, executorService,
-					futures);
+				// process path and metrics
+				processPathMetrics(repeat.getPaths(), renderer, repeatContext, executorService,
+						futures);
 
-			// process nested repeats
-			for (Repeat childRepeat : repeat.getRepeats()) {
-				processRepeat(childRepeat, renderer, repeatContext, executorService, futures);
+				// process nested repeats
+				for (Repeat childRepeat : repeat.getRepeats()) {
+					processRepeat(childRepeat, renderer, repeatContext, executorService, futures);
+				}
 			}
+		} catch (Throwable error) {
+			// log error
+			context.getEnv().getErrorHandler().onRepeatError(repeat, error);
 		}
 	}
 

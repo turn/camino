@@ -42,7 +42,8 @@ public class EnvImplTest {
 		TimeZone timeZone = TimeZone.getTimeZone("GMT");
 		FileSystem fileSystem = mock(FileSystem.class);
 		ExecutorService executorService = mock(ExecutorService.class);
-		EnvImpl env = new EnvImpl(timeZone, fileSystem, executorService);
+		ErrorHandler errorHandler = mock(ErrorHandler.class);
+		EnvImpl env = new EnvImpl(timeZone, fileSystem, executorService, errorHandler);
 
 		// test for current time
 		long t0 = System.currentTimeMillis();

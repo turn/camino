@@ -29,35 +29,43 @@ public class PathMetrics {
 	private final Path path;
 	private final PathStatus pathStatus;
 	private final List<MetricDatum> metricData;
-	private final Throwable error;
 
 	/**
 	 * Constructor
 	 *
 	 * @param path path
-	 * @param error error during evaluation
 	 * @param pathStatus path status
 	 * @param metricData metric data
 	 */
-	public PathMetrics(Path path, PathStatus pathStatus, List<MetricDatum> metricData, Throwable error) {
+	public PathMetrics(Path path, PathStatus pathStatus, List<MetricDatum> metricData) {
 		this.path = path;
 		this.pathStatus = pathStatus;
 		this.metricData = metricData != null ? ImmutableList.copyOf(metricData) : null;
-		this.error = error;
 	}
 
+	/**
+	 * Get path
+	 *
+	 * @return path
+	 */
 	public Path getPath() {
 		return path;
 	}
 
-	public Throwable getError() {
-		return error;
-	}
-
+	/**
+	 * Get path status
+	 *
+	 * @return path status
+	 */
 	public PathStatus getPathStatus() {
 		return pathStatus;
 	}
 
+	/**
+	 * Get metric data
+	 *
+	 * @return list of metric data
+	 */
 	public List<MetricDatum> getMetricData() {
 		return metricData;
 	}
