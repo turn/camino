@@ -95,11 +95,6 @@ public class CaminoApp {
 				Camino camino = new Camino(env, config);
 				List<PathMetrics> pathMetricsList = new ArrayList<>(camino.getPathMetrics());
 				for (PathMetrics pathMetrics : pathMetricsList) {
-					if (pathMetrics.getError() != null) {
-						output.println(String.format("Path %s has error %s",
-								pathMetrics.getPath().getName(), pathMetrics.getError().getMessage()));
-						continue;
-					}
 					output.println(String.format("%s (%s)", pathMetrics.getPathStatus().getName(),
 							pathMetrics.getPathStatus().getValue()));
 					for (MetricDatum metricDatum : pathMetrics.getMetricData()) {

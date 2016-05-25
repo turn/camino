@@ -606,12 +606,24 @@ public class CaminoTest {
 	 * @throws RenderException
 	 * @throws IOException
 	 */
-	@Test(expectedExceptions = InvalidNameException.class)
+	@Test
 	public void testProcessRepeatInvalidVarName() throws InvalidNameException, WrongTypeException,
 			RenderException, IOException {
 		Repeat repeat = newRepeat("3ab", "theList", new Path("thePath", "/das/auto"));
-		camino.processRepeat(repeat, mock(Renderer.class), mock(Context.class), executorService,
+
+		// mock error handler
+		Env env = mock(Env.class);
+		ErrorHandler errorHandler = mock(ErrorHandler.class);
+		when(env.getErrorHandler()).thenReturn(errorHandler);
+		Context context = mock(Context.class);
+		when(context.getEnv()).thenReturn(env);
+
+		// call repeat with error
+		camino.processRepeat(repeat, mock(Renderer.class), context, executorService,
 				Lists.<Future<PathMetrics>>newLinkedList());
+
+		// verify we handled error
+		verify(errorHandler).onRepeatError(eq(repeat), any(InvalidNameException.class));
 	}
 
 	/**
@@ -622,14 +634,26 @@ public class CaminoTest {
 	 * @throws RenderException
 	 * @throws IOException
 	 */
-	@Test(expectedExceptions = WrongTypeException.class)
+	@Test
 	public void testProcessRepeatWrongListType() throws InvalidNameException, WrongTypeException,
 			RenderException, IOException {
 		Repeat repeat = newRepeat("theVar", "theList", new Path("thePath", "/das/auto"));
 		Renderer renderer = mock(Renderer.class);
 		when(renderer.render(eq("theList"), any(Context.class))).thenReturn("aaa");
-		camino.processRepeat(repeat, renderer, mock(Context.class), executorService,
+
+		// mock error handler
+		Env env = mock(Env.class);
+		ErrorHandler errorHandler = mock(ErrorHandler.class);
+		when(env.getErrorHandler()).thenReturn(errorHandler);
+		Context context = mock(Context.class);
+		when(context.getEnv()).thenReturn(env);
+
+		// call repeat with error
+		camino.processRepeat(repeat, renderer, context, executorService,
 				Lists.<Future<PathMetrics>>newLinkedList());
+
+		// verify we handled error
+		verify(errorHandler).onRepeatError(eq(repeat), any(WrongTypeException.class));
 	}
 
 	/**

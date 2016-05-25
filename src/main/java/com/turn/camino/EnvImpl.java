@@ -31,6 +31,7 @@ class EnvImpl implements Env {
 	private TimeZone timeZone;
 	private FileSystem fileSystem;
 	private ExecutorService executorService;
+	private ErrorHandler errorHandler;
 
 	/**
 	 * Constructor
@@ -38,10 +39,12 @@ class EnvImpl implements Env {
 	 * @param timeZone time zone
 	 * @param fileSystem file system
 	 */
-	EnvImpl(TimeZone timeZone, FileSystem fileSystem, ExecutorService executorService) {
+	EnvImpl(TimeZone timeZone, FileSystem fileSystem, ExecutorService executorService,
+			ErrorHandler errorHandler) {
 		this.timeZone = timeZone;
 		this.fileSystem = fileSystem;
 		this.executorService = executorService;
+		this.errorHandler = errorHandler;
 	}
 
 	@Override
@@ -72,6 +75,11 @@ class EnvImpl implements Env {
 	@Override
 	public ExecutorService getExecutorService() {
 		return executorService;
+	}
+
+	@Override
+	public ErrorHandler getErrorHandler() {
+		return errorHandler;
 	}
 
 }
