@@ -14,16 +14,14 @@
  */
 package com.turn.camino.render.functions;
 
+import com.google.common.base.Splitter;
 import com.turn.camino.Context;
 import com.turn.camino.render.Function;
 import com.turn.camino.render.FunctionCallException;
 import com.turn.camino.render.FunctionCallExceptionFactory;
 import com.turn.camino.util.Validation;
 
-import com.google.common.collect.ImmutableMap;
-
 import java.util.List;
-import java.util.Map;
 
 import static com.turn.camino.util.Message.prefix;
 
@@ -32,18 +30,10 @@ import static com.turn.camino.util.Message.prefix;
  *
  * @author llo
  */
-public class StringFunctions implements FunctionFamily {
+public class StringFunctions {
 
 	private final static Validation<FunctionCallException> VALIDATION =
-			new Validation<FunctionCallException>(new FunctionCallExceptionFactory());
-
-	@Override
-	public Map<String, Function> getFunctions() {
-		return ImmutableMap.<String, Function>builder()
-				.put("replace", new Replace())
-				.put("replaceRegex", new ReplaceRegex())
-				.build();
-	}
+			new Validation<>(new FunctionCallExceptionFactory());
 
 	public static class Replace implements Function {
 		@Override
@@ -64,6 +54,16 @@ public class StringFunctions implements FunctionFamily {
 			String pattern = VALIDATION.requireType(params.get(1), String.class, prefix("arg1"));
 			String replacement = VALIDATION.requireType(params.get(2), String.class, prefix("arg2"));
 			return string.replaceAll(pattern, replacement);
+		}
+	}
+
+	public static class Split implements Function {
+		@Override
+		public Object invoke(List<?> params, Context context) throws FunctionCallException {
+			VALIDATION.requireListSize(params, 2, 2, prefix("parameters"));
+			String string = VALIDATION.requireType(params.get(0), String.class, prefix("arg0"));
+			String pattern = VALIDATION.requireType(params.get(1), String.class, prefix("arg1"));
+			return Splitter.on(pattern).splitToList(string);
 		}
 	}
 }

@@ -14,6 +14,8 @@
  */
 package com.turn.camino.render;
 
+import com.turn.camino.annotation.Member;
+
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -54,8 +56,14 @@ public class TimeValue {
 		return timeZone;
 	}
 
+	@Member("timeMillis")
 	public long getTime() {
 		return time;
+	}
+
+	@Member("timeZone")
+	public String getTimeZoneId() {
+		return timeZone.getID();
 	}
 
 	@Override

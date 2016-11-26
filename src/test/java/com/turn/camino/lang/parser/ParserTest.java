@@ -121,20 +121,36 @@ public class ParserTest {
 	public void testFunctionCall() throws ParseException {
 
 		// function call with one argument
-		Expression expression = langParser("today('GMT')").identifierOrFunctionCall();
+		Expression expression = langParser("today('GMT')").expression();
 		assertEquals(expression.getClass(), FunctionCall.class);
 		FunctionCall functionCall = (FunctionCall) expression;
-		assertEquals(functionCall.getIdentifier().getName(), "today");
+		assertEquals(functionCall.getFunctionValue().getClass(), Identifier.class);
+		assertEquals(((Identifier) functionCall.getFunctionValue()).getName(), "today");
 		assertEquals(functionCall.getArguments().size(), 1);
 		assertEquals(functionCall.getArguments().get(0).getClass(), StringLiteral.class);
 		assertEquals(((StringLiteral) functionCall.getArguments().get(0)).getValue(), "GMT");
 
 		// function call with no argument
-		expression = langParser("now()").identifierOrFunctionCall();
+		expression = langParser("now()").expression();
 		assertEquals(expression.getClass(), FunctionCall.class);
 		functionCall = (FunctionCall) expression;
-		assertEquals(functionCall.getIdentifier().getName(), "now");
+		assertEquals(functionCall.getFunctionValue().getClass(), Identifier.class);
+		assertEquals(((Identifier) functionCall.getFunctionValue()).getName(), "now");
 		assertEquals(functionCall.getArguments().size(), 0);
+
+		// function call with an expression as function value
+		expression = langParser("a(1)(3)").expression();
+		assertEquals(expression.getClass(), FunctionCall.class);
+		functionCall = (FunctionCall) expression;
+		assertEquals(functionCall.getFunctionValue().getClass(), FunctionCall.class);
+		assertEquals(functionCall.getArguments().size(), 1);
+
+		// function call with lambda expression
+		expression = langParser("(fn(a,b)->mul(add(a,1),b))(4,5)").expression();
+		assertEquals(expression.getClass(), FunctionCall.class);
+		functionCall = (FunctionCall) expression;
+		assertEquals(functionCall.getFunctionValue().getClass(), FunctionLiteral.class);
+		assertEquals(functionCall.getArguments().size(), 2);
 	}
 
 	/**
@@ -146,58 +162,61 @@ public class ParserTest {
 	public void testMemberAccess() throws ParseException {
 
 		// test accessing top level property
-		Expression reference = langParser("foo").reference();
+		Expression reference = langParser("foo").expression();
 		assertEquals(reference.getClass(), Identifier.class);
 		assertEquals(((Identifier) reference).getName(), "foo");
 
 		// test running top level function
-		reference = langParser("foo()").reference();
+		reference = langParser("foo()").expression();
 		assertEquals(reference.getClass(), FunctionCall.class);
-		assertEquals(((FunctionCall) reference).getIdentifier().getName(), "foo");
+		assertEquals(((FunctionCall) reference).getFunctionValue().getClass(), Identifier.class);
+		assertEquals(((Identifier)((FunctionCall) reference).getFunctionValue()).getName(), "foo");
 
 		// test accessing member field of an object
-		reference = langParser("foo.bar").reference();
+		reference = langParser("foo.bar").expression();
 		assertEquals(reference.getClass(), MemberAccess.class);
 		MemberAccess memberAccess = (MemberAccess) reference;
 		assertNotNull(memberAccess.getParent());
 		assertEquals(memberAccess.getParent().getClass(), Identifier.class);
 		assertEquals(((Identifier) memberAccess.getParent()).getName(), "foo");
 		assertNotNull(memberAccess.getChild());
-		assertEquals(memberAccess.getChild().getClass(), Identifier.class);
-		assertEquals(((Identifier) memberAccess.getChild()).getName(), "bar");
+		assertEquals(memberAccess.getChild().getName(), "bar");
 
 		// test running member function of an object
-		reference = langParser("foo.bar()").reference();
-		assertEquals(reference.getClass(), MemberAccess.class);
-		memberAccess = (MemberAccess) reference;
+		reference = langParser("foo.bar()").expression();
+		assertEquals(reference.getClass(), FunctionCall.class);
+		FunctionCall functionCall = (FunctionCall) reference;
+		assertEquals(functionCall.getFunctionValue().getClass(), MemberAccess.class);
+		memberAccess = (MemberAccess) functionCall.getFunctionValue();
 		assertNotNull(memberAccess.getParent());
 		assertEquals(memberAccess.getParent().getClass(), Identifier.class);
 		assertEquals(((Identifier) memberAccess.getParent()).getName(), "foo");
 		assertNotNull(memberAccess.getChild());
-		assertEquals(memberAccess.getChild().getClass(), FunctionCall.class);
-		assertEquals(((FunctionCall) memberAccess.getChild()).getIdentifier().getName(), "bar");
+		assertEquals(memberAccess.getChild().getName(), "bar");
 
 		// test running member function of object returned by running top-level function
-		reference = langParser("foo().bar()").reference();
-		assertEquals(reference.getClass(), MemberAccess.class);
-		memberAccess = (MemberAccess) reference;
+		reference = langParser("foo().bar()").expression();
+		assertEquals(reference.getClass(), FunctionCall.class);
+		functionCall = (FunctionCall) reference;
+		assertEquals(functionCall.getFunctionValue().getClass(), MemberAccess.class);
+		memberAccess = (MemberAccess) functionCall.getFunctionValue();
 		assertNotNull(memberAccess.getParent());
 		assertEquals(memberAccess.getParent().getClass(), FunctionCall.class);
-		assertEquals(((FunctionCall) memberAccess.getParent()).getIdentifier().getName(), "foo");
+		assertEquals(((FunctionCall) memberAccess.getParent()).getFunctionValue().getClass(), Identifier.class);
+		assertEquals(((Identifier)((FunctionCall) memberAccess.getParent()).getFunctionValue()).getName(), "foo");
 		assertNotNull(memberAccess.getChild());
-		assertEquals(memberAccess.getChild().getClass(), FunctionCall.class);
-		assertEquals(((FunctionCall) memberAccess.getChild()).getIdentifier().getName(), "bar");
+		assertEquals(memberAccess.getChild().getName(), "bar");
 
 		// test accessing member field of object returned by running top-level function
-		reference = langParser("foo().bar").reference();
+		reference = langParser("foo().bar").expression();
 		assertEquals(reference.getClass(), MemberAccess.class);
 		memberAccess = (MemberAccess) reference;
 		assertNotNull(memberAccess.getParent());
 		assertEquals(memberAccess.getParent().getClass(), FunctionCall.class);
-		assertEquals(((FunctionCall) memberAccess.getParent()).getIdentifier().getName(), "foo");
+		assertEquals(((FunctionCall) memberAccess.getParent()).getFunctionValue().getClass(), Identifier.class);
+		assertEquals(((Identifier)((FunctionCall) memberAccess.getParent()).getFunctionValue()).getName(), "foo");
 		assertNotNull(memberAccess.getChild());
-		assertEquals(memberAccess.getChild().getClass(), Identifier.class);
-		assertEquals(((Identifier) memberAccess.getChild()).getName(), "bar");
+		assertEquals(memberAccess.getChild().getName(), "bar");
 	}
 
 	/**
@@ -238,7 +257,10 @@ public class ParserTest {
 		assertEquals(dictionaryLiteral.getEntries().get(0).getValue().getClass(), StringLiteral.class);
 		assertEquals(((StringLiteral) dictionaryLiteral.getEntries().get(0).getValue()).getValue(), "stu");
 		assertEquals(dictionaryLiteral.getEntries().get(1).getKey().getClass(), FunctionCall.class);
-		assertEquals(((FunctionCall) dictionaryLiteral.getEntries().get(1).getKey()).getIdentifier().getName(), "foo");
+		assertEquals(((FunctionCall) dictionaryLiteral.getEntries().get(1).getKey())
+				.getFunctionValue().getClass(), Identifier.class);
+		assertEquals(((Identifier) ((FunctionCall) dictionaryLiteral.getEntries().get(1).getKey())
+				.getFunctionValue()).getName(), "foo");
 		assertEquals(dictionaryLiteral.getEntries().get(1).getValue().getClass(), DictionaryLiteral.class);
 		assertEquals(((DictionaryLiteral) dictionaryLiteral.getEntries().get(1).getValue()).getEntries().size(), 0);
 	}
@@ -269,7 +291,7 @@ public class ParserTest {
 	 */
 	@Test
 	public void testCollectionAccess() throws ParseException {
-		Expression expression = langParser("a[3]").reference();
+		Expression expression = langParser("a[3]").expression();
 		assertTrue(expression instanceof CollectionAccess);
 		CollectionAccess collectionAccess = (CollectionAccess) expression;
 		assertTrue(collectionAccess.getCollection() instanceof Identifier);
@@ -285,7 +307,7 @@ public class ParserTest {
 	 */
 	@Test
 	public void testNestedCollectionAccess() throws ParseException {
-		Expression expression = langParser("x['g'][v]").reference();
+		Expression expression = langParser("x['g'][v]").expression();
 		assertTrue(expression instanceof CollectionAccess);
 		CollectionAccess collectionAccess = (CollectionAccess) expression;
 		assertTrue(collectionAccess.getCollection() instanceof CollectionAccess);
@@ -295,6 +317,30 @@ public class ParserTest {
 		assertEquals(((StringLiteral) collectionAccess1.getKey()).getValue(), "g");
 		assertTrue(collectionAccess.getKey() instanceof Identifier);
 		assertEquals(((Identifier) collectionAccess.getKey()).getName(), "v");
+	}
+
+	/**
+	 * Test function literal
+	 *
+	 * @throws ParseException
+	 */
+	@Test
+	public void testFunctionLiteral() throws ParseException {
+		FunctionLiteral functionLiteral = langParser("fn(a,b) -> add(a,b)").functionLiteral();
+		List<Identifier> parameters = functionLiteral.getParameters();
+		assertEquals(parameters.size(), 2);
+		assertEquals(parameters.get(0).getName(), "a");
+		assertEquals(parameters.get(1).getName(), "b");
+		Block body = functionLiteral.getBody();
+		assertEquals(body.getExpressions().size(), 1);
+		assertTrue(body.getExpressions().get(0) instanceof FunctionCall);
+		FunctionCall functionCall = (FunctionCall) functionLiteral.getBody().getExpressions().get(0);
+		assertTrue(functionCall.getFunctionValue() instanceof Identifier);
+		assertEquals(((Identifier) functionCall.getFunctionValue()).getName(), "add");
+		assertEquals(functionCall.getArguments().size(), 2);
+		assertTrue(functionCall.getArguments().get(0) instanceof Identifier);
+		assertEquals(((Identifier) functionCall.getArguments().get(0)).getName(), "a");
+		assertEquals(((Identifier) functionCall.getArguments().get(1)).getName(), "b");
 	}
 
 	/**

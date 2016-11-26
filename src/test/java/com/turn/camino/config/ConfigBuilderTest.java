@@ -173,7 +173,7 @@ public class ConfigBuilderTest {
 		Config config = ConfigBuilder.create()
 				.addPaths(Lists.newArrayList(
 						new Path("abc", "123", Lists.newArrayList(new Metric("m1",
-								"age", "max")),
+								"age", "max", null, 0)),
 								ImmutableList.of(new Tag("pathName", "m1")), null),
 						new Path("def", "666", Lists.<Metric>newArrayList(),
 								Collections.<Tag>emptyList(), null)))

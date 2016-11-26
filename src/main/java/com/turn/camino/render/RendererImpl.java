@@ -15,22 +15,25 @@
 package com.turn.camino.render;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.turn.camino.Context;
+import com.turn.camino.annotation.Member;
 import com.turn.camino.lang.ast.*;
 import com.turn.camino.lang.parser.ParseException;
 import com.turn.camino.lang.parser.Parser;
 import com.turn.camino.lang.parser.TokenMgrError;
-import com.turn.camino.render.functions.*;
 import com.turn.camino.util.Message;
 import com.turn.camino.util.MessageExceptionFactory;
 import com.turn.camino.util.Validation;
 
 import static com.turn.camino.util.Message.full;
+import static com.turn.camino.util.Message.prefix;
 
 import java.io.StringReader;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
 
@@ -41,15 +44,8 @@ import java.util.Map;
  */
 public class RendererImpl implements Renderer {
 
-	private Map<String, Function> functions = ImmutableMap.<String, Function>builder()
-			.putAll(new TimeFunctions().getFunctions())
-			.putAll(new LogicFunctions().getFunctions())
-			.putAll(new MathFunctions().getFunctions())
-			.putAll(new CollectionFunctions().getFunctions())
-			.putAll(new FileSystemFunctions().getFunctions())
-			.putAll(new StringFunctions().getFunctions())
-			.putAll(new MetricFunctions().getFunctions())
-			.build();
+	private final static Validation<FunctionCallException> VALIDATION =
+			new Validation<>(new FunctionCallExceptionFactory());
 
 	/**
 	 * Renders expression string into a Java value
@@ -75,33 +71,18 @@ public class RendererImpl implements Renderer {
 
 		// evaluate block
 		Evaluator evaluator = new Evaluator();
-		return evaluator.visit(block, new RenderContext(context, functions));
-	}
-
-	/**
-	 * Context of visitor
-	 */
-	protected static class RenderContext {
-		final Context context;
-		final Map<String, Function> functions;
-		RenderContext(Context context, Map<String, Function> functions) {
-			this.context = context;
-			this.functions = functions;
-		}
-		Function getFunction(Identifier identifier) {
-			return functions.get(identifier.getName());
-		}
+		return evaluator.visit(block, context);
 	}
 
 	/**
 	 * Evaluates expression
 	 */
-	protected static class Evaluator implements Visitor<Object, RenderContext, RenderException> {
+	protected static class Evaluator implements Visitor<Object, Context, RenderException> {
 
 		/**
 		 * Validation that throws visit exception
 		 */
-		private Validation<RenderException> validation = new Validation<RenderException>(
+		private Validation<RenderException> validation = new Validation<>(
 				new MessageExceptionFactory<RenderException>() {
 					@Override
 					public RenderException newException(String message) {
@@ -118,11 +99,11 @@ public class RendererImpl implements Renderer {
 		 *
 		 * @param block block of code
 		 * @param context render context
-		 * @return
+		 * @return element of block
 		 * @throws RenderException
 		 */
 		@Override
-		public Object visit(Block block, RenderContext context) throws RenderException {
+		public Object visit(Block block, Context context) throws RenderException {
 			List<Object> values = Lists.newArrayListWithExpectedSize(block.getExpressions()
 					.size());
 			for (Expression expression : block.getExpressions()) {
@@ -150,7 +131,7 @@ public class RendererImpl implements Renderer {
 		 * @throws RenderException
 		 */
 		@Override
-		public Object visit(DoubleLiteral doubleLiteral, RenderContext context)
+		public Object visit(DoubleLiteral doubleLiteral, Context context)
 				throws RenderException {
 			return doubleLiteral.getNumber();
 		}
@@ -164,17 +145,19 @@ public class RendererImpl implements Renderer {
 		 * @throws RenderException
 		 */
 		@Override
-		public Object visit(FunctionCall functionCall, RenderContext context)
+		public Object visit(FunctionCall functionCall, Context context)
 				throws RenderException {
-			Identifier identifier = functionCall.getIdentifier();
-			Function function = validation.requireNotNull(context.getFunction(identifier),
-					Message.full(String.format("Function %s undefined", identifier.getName())));
+			Expression funcExpr = functionCall.getFunctionValue();
+			Function function =
+					validation.requireType(validation.requireNotNull(funcExpr.accept(this, context),
+					Message.full(String.format("Function %s undefined", funcExpr))), Function.class,
+					Message.full(String.format("Expression %s not a function", funcExpr)));
 			List<Object> params = Lists.newArrayListWithExpectedSize(functionCall.getArguments()
 					.size());
 			for (Expression argument : functionCall.getArguments()) {
 				params.add(argument.accept(this, context));
 			}
-			return function.invoke(params, context.context);
+			return function.invoke(params, context);
 		}
 
 		/**
@@ -188,8 +171,8 @@ public class RendererImpl implements Renderer {
 		 * @throws RenderException
 		 */
 		@Override
-		public Object visit(Identifier identifier, RenderContext context) throws RenderException {
-			return validation.requireNotNull(context.context.getProperty(identifier.getName()),
+		public Object visit(Identifier identifier, Context context) throws RenderException {
+			return validation.requireNotNull(context.getProperty(identifier.getName()),
 					Message.full(String.format("Unknown property %s", identifier.getName())));
 		}
 
@@ -204,7 +187,7 @@ public class RendererImpl implements Renderer {
 		 * @throws RenderException
 		 */
 		@Override
-		public Object visit(LongLiteral longLiteral, RenderContext context) throws RenderException {
+		public Object visit(LongLiteral longLiteral, Context context) throws RenderException {
 			return longLiteral.getNumber();
 		}
 
@@ -219,7 +202,7 @@ public class RendererImpl implements Renderer {
 		 * @throws RenderException
 		 */
 		@Override
-		public Object visit(StringLiteral stringLiteral, RenderContext context) throws RenderException {
+		public Object visit(StringLiteral stringLiteral, Context context) throws RenderException {
 			return stringLiteral.getValue();
 		}
 
@@ -232,7 +215,7 @@ public class RendererImpl implements Renderer {
 		 * @throws RenderException
 		 */
 		@Override
-		public Object visit(TernaryIf ternaryIf, RenderContext context) throws RenderException {
+		public Object visit(TernaryIf ternaryIf, Context context) throws RenderException {
 			Object condition = ternaryIf.getCondition().accept(this, context);
 			if (validation.requireType(condition, Boolean.class,
 					full("Condition must be boolean expression"))) {
@@ -251,7 +234,7 @@ public class RendererImpl implements Renderer {
 		 * @throws RenderException
 		 */
 		@Override
-		public Object visit(DictionaryLiteral dictionaryLiteral, RenderContext context)
+		public Object visit(DictionaryLiteral dictionaryLiteral, Context context)
 				throws RenderException {
 			Map<Object, Object> dict = Maps.newHashMap();
 			for (DictionaryLiteral.Entry entry : dictionaryLiteral.getEntries()) {
@@ -269,7 +252,7 @@ public class RendererImpl implements Renderer {
 		 * @throws RenderException
 		 */
 		@Override
-		public Object visit(ListLiteral listLiteral, RenderContext context)
+		public Object visit(ListLiteral listLiteral, Context context)
 				throws RenderException {
 			List<Object> elements = Lists.newArrayListWithExpectedSize(listLiteral.getElements()
 					.size());
@@ -288,7 +271,7 @@ public class RendererImpl implements Renderer {
 		 * @throws RenderException
 		 */
 		@Override
-		public Object visit(CollectionAccess collectionAccess, RenderContext context)
+		public Object visit(CollectionAccess collectionAccess, Context context)
 				throws RenderException {
 
 			Object collection = collectionAccess.getCollection().accept(this, context);
@@ -323,13 +306,70 @@ public class RendererImpl implements Renderer {
 		 * @throws RenderException
 		 */
 		@Override
-		public Object visit(MemberAccess memberAccess, RenderContext context)
+		public Object visit(MemberAccess memberAccess, Context context)
 				throws RenderException {
 			validation.requireNotNull(memberAccess.getParent(),
 					full("Cannot access member of null"));
 
-			// not supported yet!
-			throw new RenderException("Member access not supported yet");
+			// evaluate parent
+			Object parent = memberAccess.getParent().accept(this, context);
+			validation.requireNotNull(parent, full("Cannot access member of null"));
+
+			// check that parent has child
+			// TODO fix slow implementation
+			for (Method method : parent.getClass().getMethods()) {
+				Member member = method.getAnnotation(Member.class);
+				if (member != null) {
+					if (memberAccess.getChild().getName().equals(member.value())) {
+						try {
+							return method.invoke(parent);
+						} catch (IllegalAccessException e) {
+							throw new RenderException(e);
+						} catch (InvocationTargetException e) {
+							throw new RenderException(e);
+						}
+					}
+				}
+			}
+
+			// member not found
+			throw new RenderException(String.format("Member %s not found",
+					memberAccess.getChild().getName()));
+		}
+
+		/**
+		 * Visits function literal
+		 * @param functionLiteral function literal to visit
+		 * @param rc render context
+		 * @return value of function literal
+		 * @throws RenderException
+		 */
+		@Override
+		public Object visit(final FunctionLiteral functionLiteral, final Context rc) throws RenderException {
+			return new Function() {
+				@Override
+				public Object invoke(List<?> params, Context context) throws FunctionCallException {
+					// check parameters
+					List<Identifier> paramNames = functionLiteral.getParameters();
+					VALIDATION.requireListSize(params, paramNames.size(), paramNames.size(),
+							prefix("parameters"));
+
+					// push params into child context
+					Context childContext = context.createChild();
+					Identifier[] names = paramNames.toArray(new Identifier[paramNames.size()]);
+					Object[] values = params.toArray();
+					for (int i = 0; i < names.length; i++) {
+						childContext.setProperty(names[i].getName(), values[i]);
+					}
+
+					// execute function body
+					try {
+						return visit(functionLiteral.getBody(), childContext);
+					} catch (RenderException e) {
+						throw new FunctionCallException(e);
+					}
+				}
+			};
 		}
 
 	}

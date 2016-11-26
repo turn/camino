@@ -41,6 +41,7 @@ public class TimeValueTest {
 		TimeValue timeValue = new TimeValue(timeZone, time);
 		assertEquals(timeValue.getTime(), time);
 		assertEquals(timeValue.getTimeZone(), timeZone);
+		assertEquals(timeValue.getTimeZoneId(), "GMT");
 		assertNotNull(timeValue.toString());
 		assertTrue(timeValue.toString().contains("2014"));
 		assertTrue(timeValue.toString().contains("08"));

@@ -27,6 +27,7 @@ import com.turn.camino.lang.ast.*;
 
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Collections;
 
 /**
  * Parser class for Camino expression language
@@ -80,6 +81,7 @@ PARSER_END(Parser)
 	<#LETTER: ["a"-"z", "A"-"Z"]>
 |	<#DIGIT: ["0"-"9"]>
 |	<IF: "if">
+|   <FN: "fn">
 |	<IDENTIFIER: ( <LETTER> | "_" | "$" ) ( <LETTER> | <DIGIT> | "_" | "$" )*>
 |	<INTEGER: ( <DIGIT> )+ >
 |	<#FLOAT: <INTEGER> "." (<DIGIT>)* >
@@ -95,6 +97,7 @@ PARSER_END(Parser)
 |	<COMMA: ",">
 |	<MINUS: "-">
 |	<COLON: ":">
+|   <RIGHT_ARROW: "->">
 }
 
 /**
@@ -151,96 +154,53 @@ Block block():
  */
 Expression expression():
 {
+    Token token;
 	Expression expr;
+	Identifier memberRef;
+	Expression arrayRef;
+    List<Expression> arguments = new ArrayList<Expression>();
 }
 {
-	// if operator
-	expr = ternaryIf()
-	{
-		return expr;
-	}
-|	// member access
-	expr = reference()
-	{
-		return expr;
-	}
-|	// string literal
-	expr = stringLiteral()
-	{
-		return expr;
-	}
-|	// number literal
-	expr = numberLiteral()
-	{
-		return expr;
-	}
-|	// list Literal
-	expr = listLiteral()
-	{
-		return expr;
-	}
-|	// dictionary Literal
-	expr = dictionaryLiteral()
-	{
-		return expr;
-	}
-}
-
-/**
- * General reference to data
- */
-Expression reference():
-{
-	Expression reference;
-	Expression memberRef;
-}
-{
-	reference = identifierOrFunctionCall()
-	(
-		<DOT> memberRef = identifierOrFunctionCall()
-		{
-			reference = new MemberAccess(memberRef.getLocation(), reference, memberRef);
-		}
-	)*
-	{
-		return reference;
-	}
-}
-
-/**
- * Parses an identifier or a function call
- */
-Expression identifierOrFunctionCall():
-{
-	Identifier identifier;
-	List<Expression> arguments;
-	Expression output;
-	Expression key;
-	Token token;
-}
-{
-	// identifier at this point
-	identifier = identifier()
-	{
-		output = identifier;
-	}
-	[
-		// we have a function call
-		<OPEN_PAREN> arguments = expressionList() <CLOSE_PAREN>
-		{
-			output = new FunctionCall(identifier.getLocation(), identifier, arguments);
-		}
-	]
-	(
-		// collection access
-		token = <OPEN_BRACKET> key = expression() <CLOSE_BRACKET>
-		{
-			output = new CollectionAccess(locationOf(token), output, key);
-		}
-	)*
-	{
-		return output;
-	}
+    (
+        // function literal
+        expr = functionLiteral()
+    |
+        (
+            // nested expression
+            token = <OPEN_PAREN> expr = expression() <CLOSE_PAREN>
+        |   // if operator
+            expr = ternaryIf()
+        |	// identifier
+            expr = identifier()
+        |	// string literal
+            expr = stringLiteral()
+        |	// number literal
+            expr = numberLiteral()
+        |	// list Literal
+            expr = listLiteral()
+        |	// dictionary Literal
+            expr = dictionaryLiteral()
+        )
+        ( // member access
+            <DOT> memberRef = identifier()
+            {
+                expr = new MemberAccess(expr.getLocation(), expr, memberRef);
+            }
+        | // array access
+            <OPEN_BRACKET> arrayRef = expression() <CLOSE_BRACKET>
+            {
+                expr = new CollectionAccess(expr.getLocation(), expr, arrayRef);
+            }
+        | // function call
+            <OPEN_PAREN> arguments = expressionList() <CLOSE_PAREN>
+            {
+                expr = new FunctionCall(expr.getLocation(), expr, arguments);
+            }
+        )*
+    )
+    {
+        return expr;
+    }
 }
 
 /**
@@ -396,5 +356,37 @@ DictionaryLiteral dictionaryLiteral():
 	{
 		return builder.build();
 	}
+}
+
+/**
+ * Parses a function literal (aka a lambda expression)
+ */
+FunctionLiteral functionLiteral():
+{
+    Token token;
+    Identifier parameter;
+    List<Identifier> parameters = new ArrayList<Identifier>();
+    Expression expr;
+}
+{
+    token = <FN> <OPEN_PAREN>
+	[
+		parameter = identifier()
+		{
+			parameters.add(parameter);
+		}
+		(
+			<COMMA> parameter = identifier()
+			{
+				parameters.add(parameter);
+			}
+		)*
+	]
+    <CLOSE_PAREN>
+    <RIGHT_ARROW> expr = expression()
+    {
+        return new FunctionLiteral(locationOf(token), parameters,
+            new Block(expr.getLocation(), Collections.singletonList(expr)));
+    }
 }
 

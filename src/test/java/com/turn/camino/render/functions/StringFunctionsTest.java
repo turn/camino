@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableList;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
+import java.util.List;
 import java.util.TimeZone;
 
 import static org.mockito.Mockito.mock;
@@ -39,6 +40,7 @@ public class StringFunctionsTest {
 	private Context context;
 	private StringFunctions.Replace replace = new StringFunctions.Replace();
 	private StringFunctions.ReplaceRegex replaceRegex = new StringFunctions.ReplaceRegex();
+	private StringFunctions.Split split = new StringFunctions.Split();
 
 	/**
 	 * Set up environment
@@ -88,6 +90,15 @@ public class StringFunctionsTest {
 		result = replaceRegex.invoke(ImmutableList.of("not-an.identifier", "[\\-\\.]", "_"),
 				context);
 		assertEquals((String) result, "not_an_identifier");
+	}
+
+	@Test
+	public void testSplit() throws FunctionCallException {
+		List<?> list = (List) split.invoke(ImmutableList.of("a/b/c", "/"), context);
+		assertEquals(list.size(), 3);
+		assertEquals(list.get(0), "a");
+		assertEquals(list.get(1), "b");
+		assertEquals(list.get(2), "c");
 	}
 
 }

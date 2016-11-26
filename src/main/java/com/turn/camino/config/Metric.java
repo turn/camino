@@ -16,6 +16,7 @@ package com.turn.camino.config;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.turn.camino.annotation.Member;
 
 /**
  * Metric element in configuration
@@ -27,6 +28,8 @@ public class Metric {
 	private final String name;
 	private final String function;
 	private final String aggregate;
+	private final String aggFunction;
+	private final double defaultValue;
 
 	/**
 	 * Constructor
@@ -37,10 +40,14 @@ public class Metric {
 	 */
 	@JsonCreator
 	public Metric(@JsonProperty("name") String name, @JsonProperty("function") String function,
-				  @JsonProperty("aggregate") String aggregate) {
+				  @JsonProperty("aggregate") String aggregate,
+				  @JsonProperty("aggFunction") String aggFunction,
+				  @JsonProperty("defaultValue") double defaultValue) {
 		this.name = name;
 		this.function = function;
 		this.aggregate = aggregate;
+		this.aggFunction = aggFunction;
+		this.defaultValue = defaultValue;
 	}
 
 	/**
@@ -48,6 +55,7 @@ public class Metric {
 	 *
 	 * @return name of metric
 	 */
+	@Member("name")
 	public String getName() {
 		return name;
 	}
@@ -57,6 +65,7 @@ public class Metric {
 	 *
 	 * @return type of metric
 	 */
+	@Member("function")
 	public String getFunction() {
 		return function;
 	}
@@ -66,8 +75,29 @@ public class Metric {
 	 *
 	 * @return metric aggregate
 	 */
+	@Member("aggregate")
 	public String getAggregate() {
 		return aggregate;
+	}
+
+	/**
+	 * Gets custom aggregate function
+	 *
+	 * @return metric aggregate
+	 */
+	@Member("aggFunction")
+	public String getAggFunction() {
+		return aggFunction;
+	}
+
+	/**
+	 * Gets default value
+	 *
+	 * @return default value
+	 */
+	@Member("defaultValue")
+	public double getDefaultValue() {
+		return defaultValue;
 	}
 
 }

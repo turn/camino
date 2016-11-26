@@ -21,9 +21,6 @@ import com.turn.camino.render.FunctionCallExceptionFactory;
 import com.turn.camino.util.Validation;
 
 import java.util.List;
-import java.util.Map;
-
-import com.google.common.collect.ImmutableMap;
 
 import static com.turn.camino.util.Message.prefix;
 
@@ -32,22 +29,10 @@ import static com.turn.camino.util.Message.prefix;
  *
  * @author llo
  */
-public class LogicFunctions implements FunctionFamily {
+public class LogicFunctions {
 
 	private final static Validation<FunctionCallException> VALIDATION =
-			new Validation<FunctionCallException>(new FunctionCallExceptionFactory());
-
-	public Map<String, Function> getFunctions() {
-		return ImmutableMap.<String, Function>builder()
-				.put("not", new Not())
-				.put("eq", new Eq())
-				.put("ne", new Ne())
-				.put("lt", new Lt())
-				.put("gt", new Gt())
-				.put("ltEq", new LtEq())
-				.put("gtEq", new GtEq())
-				.build();
-	}
+			new Validation<>(new FunctionCallExceptionFactory());
 
 	public static class Not implements Function {
 		@Override

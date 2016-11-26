@@ -38,15 +38,17 @@ public class PathTest {
 	 */
 	@Test
 	public void testConstructorWithTagMap() {
-		List<Metric> metrics = Lists.newArrayList(new Metric("m1", "creationDelay", "none"));
+		List<Metric> metrics = Lists.newArrayList(new Metric("m1", "size", "max", "metricAgg", 0));
 		Map<String, String> tags = ImmutableMap.of("pk", "abc");
 		Path path = new Path("abc", "xyz", metrics, tags, "<%=now()%>");
 		assertEquals(path.getName(), "abc");
 		assertEquals(path.getValue(), "xyz");
 		assertEquals(path.getMetrics().size(), 1);
 		assertEquals(path.getMetrics().get(0).getName(), "m1");
-		assertEquals(path.getMetrics().get(0).getFunction(), "creationDelay");
-		assertEquals(path.getMetrics().get(0).getAggregate(), "none");
+		assertEquals(path.getMetrics().get(0).getFunction(), "size");
+		assertEquals(path.getMetrics().get(0).getAggregate(), "max");
+		assertEquals(path.getMetrics().get(0).getAggFunction(), "metricAgg");
+		assertEquals(path.getMetrics().get(0).getDefaultValue(), 0, 1e-5);
 		assertEquals(path.getTags().size(), 1);
 		assertEquals(path.getTags().get(0).getKey(), "pk");
 		assertEquals(path.getTags().get(0).getValue(), "abc");
@@ -58,15 +60,17 @@ public class PathTest {
 	 */
 	@Test
 	public void testConstructorWithTagList() {
-		List<Metric> metrics = Lists.newArrayList(new Metric("m1", "creationDelay", "none"));
+		List<Metric> metrics = Lists.newArrayList(new Metric("m1", "size", "max", "metricAgg", 0));
 		List<Tag> tags = Lists.newArrayList(new Tag("pk", "abc"));
 		Path path = new Path("abc", "xyz", metrics, tags, "<%=now()%>");
 		assertEquals(path.getName(), "abc");
 		assertEquals(path.getValue(), "xyz");
 		assertEquals(path.getMetrics().size(), 1);
 		assertEquals(path.getMetrics().get(0).getName(), "m1");
-		assertEquals(path.getMetrics().get(0).getFunction(), "creationDelay");
-		assertEquals(path.getMetrics().get(0).getAggregate(), "none");
+		assertEquals(path.getMetrics().get(0).getFunction(), "size");
+		assertEquals(path.getMetrics().get(0).getAggregate(), "max");
+		assertEquals(path.getMetrics().get(0).getAggFunction(), "metricAgg");
+		assertEquals(path.getMetrics().get(0).getDefaultValue(), 0, 1e-5);
 		assertEquals(path.getTags().size(), 1);
 		assertEquals(path.getTags().get(0).getKey(), "pk");
 		assertEquals(path.getTags().get(0).getValue(), "abc");
@@ -110,7 +114,7 @@ public class PathTest {
 	public void testImmutableMetrics() {
 		Path path = new Path("none", "none", Lists.<Metric>newArrayList(),
 				Lists.<Tag>newArrayList(), null);
-		path.getMetrics().add(new Metric("m2", "size", "max"));
+		path.getMetrics().add(new Metric("m2", "size", "max", null, 0));
 	}
 
 }

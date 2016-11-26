@@ -31,7 +31,7 @@ public interface Visitor<O, C, E extends Throwable> {
 	 * @return value of visit
 	 * @throws E custom exception
 	 */
-	public O visit(Block block, C context) throws E;
+	O visit(Block block, C context) throws E;
 
 	/**
 	 * Visits a double literal
@@ -41,7 +41,7 @@ public interface Visitor<O, C, E extends Throwable> {
 	 * @return value of visit
 	 * @throws E custom exception
 	 */
-	public O visit(DoubleLiteral doubleLiteral, C context) throws E;
+	O visit(DoubleLiteral doubleLiteral, C context) throws E;
 
 	/**
 	 * Visits a function call
@@ -51,7 +51,7 @@ public interface Visitor<O, C, E extends Throwable> {
 	 * @return value of visit
 	 * @throws E custom exception
 	 */
-	public O visit(FunctionCall functionCall, C context) throws E;
+	O visit(FunctionCall functionCall, C context) throws E;
 
 	/**
 	 * Visits an identifier
@@ -61,7 +61,7 @@ public interface Visitor<O, C, E extends Throwable> {
 	 * @return value of visit
 	 * @throws E custom exception
 	 */
-	public O visit(Identifier identifier, C context) throws E;
+	O visit(Identifier identifier, C context) throws E;
 
 	/**
 	 * Visits a long literal
@@ -71,7 +71,7 @@ public interface Visitor<O, C, E extends Throwable> {
 	 * @return value of visit
 	 * @throws E custom exception
 	 */
-	public O visit(LongLiteral longLiteral, C context) throws E;
+	O visit(LongLiteral longLiteral, C context) throws E;
 
 	/**
 	 * Visits a string literal
@@ -81,7 +81,7 @@ public interface Visitor<O, C, E extends Throwable> {
 	 * @return value of visit
 	 * @throws E custom exception
 	 */
-	public O visit(StringLiteral stringLiteral, C context) throws E;
+	O visit(StringLiteral stringLiteral, C context) throws E;
 
 	/**
 	 * Visits a ternary if
@@ -91,7 +91,7 @@ public interface Visitor<O, C, E extends Throwable> {
 	 * @return value of visit
 	 * @throws E custom exception
 	 */
-	public O visit(TernaryIf ternaryIf, C context) throws E;
+	O visit(TernaryIf ternaryIf, C context) throws E;
 
 	/**
 	 * Visits a dictionary initializer
@@ -99,9 +99,9 @@ public interface Visitor<O, C, E extends Throwable> {
 	 * @param dictionaryLiteral dictionary literal to visit
 	 * @param context context of visit
 	 * @return value of visit
-	 * @throws E customer exception
+	 * @throws E custom exception
 	 */
-	public O visit(DictionaryLiteral dictionaryLiteral, C context) throws E;
+	O visit(DictionaryLiteral dictionaryLiteral, C context) throws E;
 
 	/**
 	 * Visits a list initializer
@@ -109,19 +109,19 @@ public interface Visitor<O, C, E extends Throwable> {
 	 * @param listLiteral list literal to visit
 	 * @param context context of visit
 	 * @return value of visit
-	 * @throws E customer exception
+	 * @throws E custom exception
 	 */
-	public O visit(ListLiteral listLiteral, C context) throws E;
+	O visit(ListLiteral listLiteral, C context) throws E;
 
 	/**
 	 * Visits a collectiona ccess
 	 *
-	 * @param collectionAccess
-	 * @param context
-	 * @return
-	 * @throws E
+	 * @param collectionAccess collection access to visit
+	 * @param context context of visit
+	 * @return value of visit
+	 * @throws E custom exception
 	 */
-	public O visit(CollectionAccess collectionAccess, C context) throws E;
+	O visit(CollectionAccess collectionAccess, C context) throws E;
 
 	/**
 	 * Visits a member access
@@ -131,5 +131,15 @@ public interface Visitor<O, C, E extends Throwable> {
 	 * @return value of visit
 	 * @throws E custom exception
 	 */
-	public O visit(MemberAccess memberAccess, C context) throws E;
+	O visit(MemberAccess memberAccess, C context) throws E;
+
+	/**
+	 * Visits a function literal
+	 * @param functionLiteral function literal to visit
+	 * @param context context of visit
+	 * @return value of visit
+	 * @throws E custom exception
+	 */
+	O visit(FunctionLiteral functionLiteral, C context) throws E;
+
 }

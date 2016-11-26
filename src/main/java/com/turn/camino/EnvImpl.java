@@ -14,10 +14,13 @@
  */
 package com.turn.camino;
 
+import com.google.common.collect.ImmutableMap;
 import com.turn.camino.render.Renderer;
 import com.turn.camino.render.RendererImpl;
+import com.turn.camino.render.functions.*;
 import org.apache.hadoop.fs.FileSystem;
 
+import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.ExecutorService;
 
@@ -27,6 +30,10 @@ import java.util.concurrent.ExecutorService;
  * @author llo
  */
 class EnvImpl implements Env {
+
+	private final static Map<String, Object> BASE_CONTEXT = ImmutableMap.<String, Object>builder()
+			.putAll(FunctionEnum.toMap())
+			.build();
 
 	private TimeZone timeZone;
 	private FileSystem fileSystem;
@@ -64,7 +71,7 @@ class EnvImpl implements Env {
 
 	@Override
 	public Context newContext() {
-		return new ContextImpl(this, null);
+		return new ContextImpl(this, null, BASE_CONTEXT);
 	}
 
 	@Override

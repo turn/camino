@@ -26,14 +26,14 @@ public interface Context {
 	 *
 	 * @return system environment
 	 */
-	public Env getEnv();
+	Env getEnv();
 
 	/**
 	 * Creates child context
 	 *
 	 * @return new context
 	 */
-	public Context createChild();
+	Context createChild();
 
 	/**
 	 * Gets parent context
@@ -42,7 +42,7 @@ public interface Context {
 	 *
 	 * @return parent context
 	 */
-	public Context getParent();
+	Context getParent();
 
 	/**
 	 * Gets global context
@@ -51,7 +51,7 @@ public interface Context {
 	 *
 	 * @return global context
 	 */
-	public Context getGlobal();
+	Context getGlobal();
 
 	/**
 	 * Puts name and value of property into the current context
@@ -59,7 +59,7 @@ public interface Context {
 	 * @param name name of property
 	 * @param value value of property
 	 */
-	public void setProperty(String name, Object value);
+	void setProperty(String name, Object value);
 
 	/**
 	 * Gets a value of a property given a name
@@ -71,7 +71,7 @@ public interface Context {
 	 * @param name name of property
 	 * @return value of property
 	 */
-	public Object getProperty(String name);
+	Object getProperty(String name);
 
 	/**
 	 * Gets a value of a property given a name
@@ -85,7 +85,7 @@ public interface Context {
 	 * @return value
 	 * @throws WrongTypeException
 	 */
-	public <T> T getProperty(String name, Class<T> type) throws WrongTypeException;
+	<T> T getProperty(String name, Class<T> type) throws WrongTypeException;
 
 	/**
 	 * Gets time the global instance was created
@@ -96,6 +96,6 @@ public interface Context {
 	 *
 	 * @return UTC time in milliseconds
 	 */
-	public long getGlobalInstanceTime();
+	long getGlobalInstanceTime();
 
 }

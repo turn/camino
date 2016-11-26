@@ -34,42 +34,17 @@ import java.util.*;
  *
  * @author llo
  */
-public class TimeFunctions implements FunctionFamily {
+public class TimeFunctions {
 
 	private final static Validation<FunctionCallException> VALIDATION =
-			new Validation<FunctionCallException>(new FunctionCallExceptionFactory());
+			new Validation<>(new FunctionCallExceptionFactory());
 
 	private final static long MILLISECS_PER_DAY = 24 * 60 * 60 * 1000L;
 
 	/**
-	 * Constructor
-	 */
-	public TimeFunctions() {
-	}
-
-	/**
-	 * Gets functions in this family
-	 *
-	 * @return map of functions
-	 */
-	@Override
-	public Map<String, Function> getFunctions() {
-		return ImmutableMap.<String, Function>builder()
-				.put("now", new Now())
-				.put("today", new Today())
-				.put("yesterday", new Yesterday())
-				.put("timeAdd", new TimeAdd())
-				.put("timeFormat", new TimeFormat())
-				.put("timeParse", new TimeParse())
-				.put("timeToUnixDay", new TimeToUnixDay())
-				.put("unixDayToTime", new UnixDayToTime())
-				.build();
-	}
-
-	/**
 	 * Supported time units
 	 */
-	public static enum Unit {
+	public enum Unit {
 		YEAR("y", Calendar.YEAR),
 		MONTH("M", Calendar.MONTH),
 		DAY("D", Calendar.DATE),
@@ -80,7 +55,7 @@ public class TimeFunctions implements FunctionFamily {
 
 		private final String symbol;
 		private final int unit;
-		private Unit(String symbol, int unit) {
+		Unit(String symbol, int unit) {
 			this.symbol = symbol;
 			this.unit = unit;
 		}

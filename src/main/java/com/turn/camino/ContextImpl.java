@@ -34,7 +34,7 @@ class ContextImpl implements Context {
 	private Map<String, Object> properties = Maps.newHashMap();
 	private long instanceTime;
 
-	private Validation<WrongTypeException> validation = new Validation<WrongTypeException>(
+	private Validation<WrongTypeException> validation = new Validation<>(
 			new MessageExceptionFactory<WrongTypeException>() {
 				@Override
 				public WrongTypeException newException(String message) {
@@ -58,6 +58,11 @@ class ContextImpl implements Context {
 			this.instanceTime = env.getCurrentTime();
 			this.global = this;
 		}
+	}
+
+	ContextImpl(Env env, Context parent, Map<String, Object> properties) {
+		this(env, parent);
+		this.properties.putAll(properties);
 	}
 
 	@Override

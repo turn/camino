@@ -15,9 +15,11 @@
 package com.turn.camino.render.functions;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import com.turn.camino.Context;
 import com.turn.camino.PathDetail;
 import com.turn.camino.PathStatus;
+import com.turn.camino.WrongTypeException;
 import com.turn.camino.config.Metric;
 import com.turn.camino.render.Function;
 import com.turn.camino.render.FunctionCallException;
@@ -25,7 +27,6 @@ import com.turn.camino.render.FunctionCallExceptionFactory;
 import com.turn.camino.util.Validation;
 
 import java.util.List;
-import java.util.Map;
 
 import static com.turn.camino.util.Message.prefix;
 
@@ -34,10 +35,10 @@ import static com.turn.camino.util.Message.prefix;
  *
  * @author llo
  */
-public class MetricFunctions implements FunctionFamily {
+public class MetricFunctions {
 
 	private final static Validation<FunctionCallException> VALIDATION =
-			new Validation<FunctionCallException>(new FunctionCallExceptionFactory());
+			new Validation<>(new FunctionCallExceptionFactory());
 
 	private final static ImmutableMap<String, AggregateFactory> AGGREGATES = ImmutableMap.<String, AggregateFactory>builder()
 			.put("sum", new AggregateFactory() {
@@ -109,21 +110,6 @@ public class MetricFunctions implements FunctionFamily {
 			.build();
 
 	/**
-	 * Get functions of this family
-	 *
-	 * @return metric functions
-	 */
-	@Override
-	public Map<String, Function> getFunctions() {
-		return ImmutableMap.<String, Function>builder()
-				.put("age", new Age())
-				.put("count", new Count())
-				.put("size", new Size())
-				.put("creationDelay", new CreationDelay())
-				.build();
-	}
-
-	/**
 	 * Simple aggregate interface
 	 */
 	interface Aggregate {
@@ -176,44 +162,31 @@ public class MetricFunctions implements FunctionFamily {
 	/**
 	 * Metric that aggregate over path details
 	 */
-	public static abstract class MetricAggregateFunction extends MetricFunction {
+	public static class MetricAggregateFunction extends MetricFunction {
 
 		@Override
-		public double invoke(Metric metric, PathStatus pathStatus, Context context) throws FunctionCallException {
+		public double invoke(Metric metric, PathStatus pathStatus, Context context)
+				throws FunctionCallException {
+			Function function;
+			try {
+				function = VALIDATION.requireNotNull(context.getProperty(metric.getFunction(),
+						Function.class), prefix(metric.getFunction() + " is not a function"));
+			} catch (WrongTypeException e) {
+				throw new FunctionCallException(e);
+			}
 			AggregateFactory aggregateFactory = AGGREGATES.get(metric.getAggregate());
 			if (aggregateFactory == null) {
 				throw new FunctionCallException("Unknown aggregate " + metric.getAggregate());
 			}
 			Aggregate aggregate = aggregateFactory.newInstance();
 			if (pathStatus.getPathDetails().isEmpty()) {
-				return defaultValue(metric);
+				return metric.getDefaultValue();
 			}
 			for (PathDetail pathDetail : pathStatus.getPathDetails()) {
-				aggregate.put(invoke(metric, pathDetail, context));
+				aggregate.put(((Number) function.invoke(Lists.newArrayList(metric, pathDetail),
+						context)).doubleValue());
 			}
 			return aggregate.get();
-		}
-
-		/**
-		 * Invoke on path detail
-		 * @param metric metric
-		 * @param pathDetail path detail
-		 * @param context context
-		 * @return metric value
-		 * @throws FunctionCallException
-		 */
-		public abstract double invoke(Metric metric, PathDetail pathDetail, Context context)
-				throws FunctionCallException;
-
-		/**
-		 * Default value of metric if no paths are resolved
-		 *
-		 * @param metric metric
-		 * @return metric value
-		 */
-		@SuppressWarnings("unused")
-		public double defaultValue(Metric metric) {
-			return 0;
 		}
 	}
 
@@ -269,11 +242,36 @@ public class MetricFunctions implements FunctionFamily {
 	}
 
 	/**
+	 * Path detail function
+	 */
+	public static abstract class PathDetailFunction implements Function {
+
+		/**
+		 * Invokes path detail function
+		 *
+		 * @param params  actual parameters to function call
+		 * @param context context in which the function operates
+		 * @return metric value
+		 * @throws FunctionCallException
+		 */
+		@Override
+		public Object invoke(List<?> params, Context context) throws FunctionCallException {
+			VALIDATION.requireListSize(params, 2, 2, prefix("parameters"));
+			return invoke(VALIDATION.requireType(params.get(0), Metric.class, prefix("metric")),
+					VALIDATION.requireType(params.get(1), PathDetail.class, prefix("pathDetail")),
+					context);
+		}
+
+		public abstract double invoke(Metric metric, PathDetail pathDetail, Context context)
+				throws FunctionCallException;
+	}
+
+	/**
 	 * Computes age of path
 	 *
 	 * If path has multiple actual paths, will rely on aggregate property to compute age
 	 */
-	public static class Age extends MetricAggregateFunction {
+	public static class Age extends PathDetailFunction {
 		@Override
 		public double invoke(Metric metric, PathDetail pathDetail, Context context)
 				throws FunctionCallException {
@@ -286,7 +284,7 @@ public class MetricFunctions implements FunctionFamily {
 	 *
 	 * If multiple paths are resolved, then it is the sum of sizes of all paths
 	 */
-	public static class Size extends MetricAggregateFunction {
+	public static class Size extends PathDetailFunction {
 		@Override
 		public double invoke(Metric metric, PathDetail pathDetail, Context context)
 				throws FunctionCallException {

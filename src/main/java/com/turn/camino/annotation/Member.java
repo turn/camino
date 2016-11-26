@@ -12,27 +12,17 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  */
-package com.turn.camino.render;
+package com.turn.camino.annotation;
 
-import com.turn.camino.Context;
-
-import java.util.List;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 
 /**
- * Function interface
+ * Annotation for member access
  *
  * @author llo
  */
-public interface Function {
-
-	/**
-	 * Invokes function with given parameters and context
-	 *
-	 * @param params actual parameters to function call
-	 * @param context context in which the function operates
-	 * @return return value of function
-	 * @throws FunctionCallException
-	 */
-	Object invoke(List<?> params, Context context) throws FunctionCallException;
-
+@Retention(RetentionPolicy.RUNTIME)
+public @interface Member {
+	String value();
 }

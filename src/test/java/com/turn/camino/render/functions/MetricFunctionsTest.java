@@ -15,12 +15,10 @@
 package com.turn.camino.render.functions;
 
 import com.google.common.collect.ImmutableList;
-import com.turn.camino.Context;
-import com.turn.camino.Env;
-import com.turn.camino.PathDetail;
-import com.turn.camino.PathStatus;
+import com.turn.camino.*;
 import com.turn.camino.config.Metric;
 import com.turn.camino.config.Path;
+import com.turn.camino.render.Function;
 import com.turn.camino.render.FunctionCallException;
 import com.turn.camino.render.TimeValue;
 import org.testng.annotations.BeforeClass;
@@ -41,6 +39,7 @@ import static org.testng.Assert.assertEquals;
 public class MetricFunctionsTest {
 
 	private final static double EPSILON = 1e-6;
+	private MetricFunctions.MetricAggregateFunction metricAgg = new MetricFunctions.MetricAggregateFunction();
 	private MetricFunctions.Age age = new MetricFunctions.Age();
 	private MetricFunctions.Count count = new MetricFunctions.Count();
 	private MetricFunctions.Size size = new MetricFunctions.Size();
@@ -53,7 +52,7 @@ public class MetricFunctionsTest {
 	 * Set up environment
 	 */
 	@BeforeClass
-	public void setUp() {
+	public void setUp() throws WrongTypeException {
 		now = System.currentTimeMillis();
 		Env env = mock(Env.class);
 		when(env.getCurrentTime()).thenReturn(now);
@@ -66,6 +65,22 @@ public class MetricFunctionsTest {
 		context = mock(Context.class);
 		when(context.getEnv()).thenReturn(env);
 		when(context.getGlobalInstanceTime()).thenReturn(now);
+		when(context.getProperty("age")).thenReturn(age);
+		when(context.getProperty("age", Function.class)).thenReturn(age);
+		when(context.getProperty("size")).thenReturn(size);
+		when(context.getProperty("size", Function.class)).thenReturn(size);
+	}
+
+	/**
+	 * Test age function
+	 *
+	 * @throws FunctionCallException
+	 */
+	@Test
+	public void testAge() throws FunctionCallException {
+		double value = age.invoke(new Metric("minAge", "age", "min", null, 0),
+				pathStatus.getPathDetails().get(1), context);
+		assertEquals(value, 500, EPSILON);
 	}
 
 	/**
@@ -75,7 +90,8 @@ public class MetricFunctionsTest {
 	 */
 	@Test
 	public void testMinAge() throws FunctionCallException {
-		double value = age.invoke(new Metric("minAge", "age", "min"), pathStatus, context);
+		double value = metricAgg.invoke(new Metric("minAge", "age", "min", null, 0),
+				pathStatus, context);
 		assertEquals(value, 500, EPSILON);
 	}
 
@@ -86,7 +102,8 @@ public class MetricFunctionsTest {
 	 */
 	@Test
 	public void testMaxAge() throws FunctionCallException {
-		double value = age.invoke(new Metric("maxAge", "age", "max"), pathStatus, context);
+		double value = metricAgg.invoke(new Metric("maxAge", "age", "max", null, 0),
+				pathStatus, context);
 		assertEquals(value, 19000, EPSILON);
 	}
 
@@ -97,7 +114,8 @@ public class MetricFunctionsTest {
 	 */
 	@Test
 	public void testAvgAge() throws FunctionCallException {
-		double value = age.invoke(new Metric("avgAge", "age", "avg"), pathStatus, context);
+		double value = metricAgg.invoke(new Metric("avgAge", "age", "avg", null, 0),
+				pathStatus, context);
 		assertEquals(value, (double) (4000 + 500 + 19000) / 3, EPSILON);
 	}
 
@@ -108,8 +126,19 @@ public class MetricFunctionsTest {
 	 */
 	@Test
 	public void testAgeEmptyPaths() throws FunctionCallException {
-		double value = age.invoke(new Metric("maxAge", "age", "max"), emptyPathStatus, context);
+		double value = metricAgg.invoke(new Metric("maxAge", "age", "max", null, 0),
+				emptyPathStatus, context);
 		assertEquals(value, 0, EPSILON);
+	}
+
+	/**
+	 * Test that an invalid function throws exception
+	 *
+	 * @throws FunctionCallException
+	 */
+	@Test(expectedExceptions = FunctionCallException.class)
+	public void testInvalidFunction() throws FunctionCallException {
+		metricAgg.invoke(new Metric("badAge", "foobar", "sum", null, 0), emptyPathStatus, context);
 	}
 
 	/**
@@ -119,7 +148,7 @@ public class MetricFunctionsTest {
 	 */
 	@Test(expectedExceptions = FunctionCallException.class)
 	public void testInvalidAggregate() throws FunctionCallException {
-		age.invoke(new Metric("badAge", "age", "foobar"), emptyPathStatus, context);
+		metricAgg.invoke(new Metric("badAge", "age", "foobar", null, 0), emptyPathStatus, context);
 	}
 
 	/**
@@ -151,7 +180,8 @@ public class MetricFunctionsTest {
 	 */
 	@Test
 	public void testMinSize() throws FunctionCallException {
-		double value = size.invoke(new Metric("size", "size", "min"), pathStatus, context);
+		double value = metricAgg.invoke(new Metric("size", "size", "min", null, 0),
+				pathStatus, context);
 		assertEquals(value, 100, EPSILON);
 	}
 
@@ -162,7 +192,8 @@ public class MetricFunctionsTest {
 	 */
 	@Test
 	public void testMaxSize() throws FunctionCallException {
-		double value = size.invoke(new Metric("size", "size", "max"), pathStatus, context);
+		double value = metricAgg.invoke(new Metric("size", "size", "max", null, 0),
+				pathStatus, context);
 		assertEquals(value, 200, EPSILON);
 	}
 
@@ -173,7 +204,8 @@ public class MetricFunctionsTest {
 	 */
 	@Test
 	public void testSumSize() throws FunctionCallException {
-		double value = size.invoke(new Metric("size", "size", "sum"), pathStatus, context);
+		double value = metricAgg.invoke(new Metric("size", "size", "sum", null, 0),
+				pathStatus, context);
 		assertEquals(value, 435, EPSILON);
 	}
 
@@ -184,7 +216,8 @@ public class MetricFunctionsTest {
 	 */
 	@Test
 	public void testAvgSize() throws FunctionCallException {
-		double value = size.invoke(new Metric("size", "size", "avg"), pathStatus, context);
+		double value = metricAgg.invoke(new Metric("size", "size", "avg", null, 0),
+				pathStatus, context);
 		assertEquals(value, 145, EPSILON);
 	}
 
@@ -195,7 +228,8 @@ public class MetricFunctionsTest {
 	 */
 	@Test
 	public void testZeroSize() throws FunctionCallException {
-		double value = size.invoke(new Metric("size", "size", "sum"), emptyPathStatus, context);
+		double value = metricAgg.invoke(new Metric("size", "size", "sum", null, 0),
+				emptyPathStatus, context);
 		assertEquals(value, 0, EPSILON);
 	}
 
@@ -209,7 +243,7 @@ public class MetricFunctionsTest {
 	@Test
 	public void testCreationDelayFileExists() throws FunctionCallException {
 
-		Metric metric = new Metric("creationDelay", "creationDelay", null);
+		Metric metric = new Metric("creationDelay", null, null, "creationDelay", 0);
 
 		// test when creation time is in the past
 		PathStatus testPathStatus = new PathStatus("boo", "foo", mock(Path.class),
@@ -238,7 +272,7 @@ public class MetricFunctionsTest {
 	@Test
 	public void testCreationDelayFileNotExists() throws FunctionCallException {
 
-		Metric metric = new Metric("creationDelay", "creationDelay", null);
+		Metric metric = new Metric("creationDelay", null, null, "creationDelay", 0);
 
 		// test when creation time is in the past
 		PathStatus testPathStatus = new PathStatus("boo", "foo", mock(Path.class),
