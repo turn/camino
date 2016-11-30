@@ -24,6 +24,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.turn.camino.annotation.Member;
 
 /**
  * Path element in configuration
@@ -98,6 +99,7 @@ public class Path {
 	 *
 	 * @return name of path
 	 */
+	@Member("name")
 	public String getName() {
 		return name;
 	}
@@ -107,6 +109,7 @@ public class Path {
 	 *
 	 * @return value of path
 	 */
+	@Member("value")
 	public String getValue() {
 		return value;
 	}
@@ -118,6 +121,7 @@ public class Path {
 	 *
 	 * @return immutable list of metrics
 	 */
+	@Member("metrics")
 	public List<Metric> getMetrics() {
 		return metrics;
 	}
@@ -127,6 +131,7 @@ public class Path {
 	 *
 	 * @return immutable list of tags (key and value pairs)
 	 */
+	@Member("tags")
 	public List<Tag> getTags() { return tags; }
 
 	/**
@@ -134,6 +139,7 @@ public class Path {
 	 *
 	 * @return expression to compute expected creation time
 	 */
+	@Member("expectedCreationTime")
 	public String getExpectedCreationTime() {
 		return expectedCreationTime;
 	}

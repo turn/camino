@@ -17,7 +17,6 @@ package com.turn.camino.render.functions;
 import com.google.common.collect.ImmutableMap;
 import com.turn.camino.Context;
 import com.turn.camino.Env;
-import com.turn.camino.lang.ast.FunctionCall;
 import com.turn.camino.render.FunctionCallException;
 
 import java.util.List;
@@ -45,6 +44,8 @@ public class CollectionFunctionsTest {
 	private Context context;
 	private CollectionFunctions.ListCreate listCreate = new CollectionFunctions.ListCreate();
 	private CollectionFunctions.ListGet listGet = new CollectionFunctions.ListGet();
+	private CollectionFunctions.ListFirst listFirst = new CollectionFunctions.ListFirst();
+	private CollectionFunctions.ListLast listLast = new CollectionFunctions.ListLast();
 	private CollectionFunctions.DictCreate dictCreate = new CollectionFunctions.DictCreate();
 	private CollectionFunctions.DictGet dictGet = new CollectionFunctions.DictGet();
 
@@ -113,6 +114,74 @@ public class CollectionFunctionsTest {
 	public void testListGetOutofBoundIndex() throws FunctionCallException {
 		List<?> list = ImmutableList.of(1L, 2L, 3L, 4L);
 		listGet.invoke(ImmutableList.of(list, 10L), context);
+	}
+
+	/**
+	 * Test getting first element from a list
+	 *
+	 * @throws FunctionCallException
+	 */
+	@Test
+	public void testListFirst() throws FunctionCallException {
+
+		// test with a non-empty list
+		List<?> list = ImmutableList.of(1L, 2L, 3L, 4L);
+		Object result = listFirst.invoke(ImmutableList.of(list), context);
+		assertTrue(result instanceof Long);
+		assertEquals(((Long) result).longValue(), 1L);
+
+		// test with empty list and default value
+		list = ImmutableList.of();
+		result = listFirst.invoke(ImmutableList.of(list, -2L), context);
+		assertTrue(result instanceof Long);
+		assertEquals(((Long) result).longValue(), -2L);
+	}
+
+	/**
+	 * Test getting first element from an empty list without a default value
+	 *
+	 * Expects to throw an exception
+	 *
+	 * @throws FunctionCallException
+	 */
+	@Test(expectedExceptions = FunctionCallException.class)
+	public void testListFirstEmptyList() throws FunctionCallException {
+		List<?> list = ImmutableList.of();
+		listFirst.invoke(ImmutableList.of(list), context);
+	}
+
+	/**
+	 * Test getting last element from a list
+	 *
+	 * @throws FunctionCallException
+	 */
+	@Test
+	public void testListLast() throws FunctionCallException {
+
+		// test with a non-empty list
+		List<?> list = ImmutableList.of(1L, 2L, 3L, 4L);
+		Object result = listLast.invoke(ImmutableList.of(list), context);
+		assertTrue(result instanceof Long);
+		assertEquals(((Long) result).longValue(), 4L);
+
+		// test with empty list and default value
+		list = ImmutableList.of();
+		result = listFirst.invoke(ImmutableList.of(list, -2L), context);
+		assertTrue(result instanceof Long);
+		assertEquals(((Long) result).longValue(), -2L);
+	}
+
+	/**
+	 * Test getting first element from an empty list without a default value
+	 *
+	 * Expects to throw an exception
+	 *
+	 * @throws FunctionCallException
+	 */
+	@Test(expectedExceptions = FunctionCallException.class)
+	public void testListLastEmptyList() throws FunctionCallException {
+		List<?> list = ImmutableList.of();
+		listLast.invoke(ImmutableList.of(list), context);
 	}
 
 	/**

@@ -15,6 +15,7 @@
 package com.turn.camino.config;
 
 import com.google.common.base.Preconditions;
+import com.turn.camino.annotation.Member;
 
 /**
  * Tag element in Camino configuration
@@ -44,6 +45,7 @@ public class Tag {
 	 *
 	 * @return key of tag
 	 */
+	@Member("key")
 	public String getKey() {
 		return key;
 	}
@@ -53,6 +55,7 @@ public class Tag {
 	 *
 	 * @return value of tag
 	 */
+	@Member("value")
 	public String getValue() {
 		return value;
 	}

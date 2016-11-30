@@ -33,6 +33,6 @@ public interface Renderer {
 	 * @return rendered result
 	 * @throws RenderException
 	 */
-	public Object render(String expression, Context context) throws RenderException;
+	Object render(String expression, Context context) throws RenderException;
 
 }

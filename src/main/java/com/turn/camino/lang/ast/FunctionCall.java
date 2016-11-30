@@ -25,29 +25,29 @@ import com.google.common.collect.ImmutableList;
  */
 public class FunctionCall extends Expression {
 
-	private final Identifier identifier;
+	private final Expression functionValue;
 	private final List<Expression> arguments;
 
 	/**
 	 * Constructor
 	 *
 	 * @param location location of function call
-	 * @param identifier identifier of function
+	 * @param functionValue function to invoke
 	 * @param arguments arguments of function call
 	 */
-	public FunctionCall(Location location, Identifier identifier, List<Expression> arguments) {
+	public FunctionCall(Location location, Expression functionValue, List<Expression> arguments) {
 		super(location);
-		this.identifier = identifier;
+		this.functionValue = functionValue;
 		this.arguments = ImmutableList.copyOf(arguments);
 	}
 
 	/**
-	 * Gets identifier of this function call
+	 * Gets function of this function call
 	 *
-	 * @return identifier
+	 * @return expression
 	 */
-	public Identifier getIdentifier() {
-		return identifier;
+	public Expression getFunctionValue() {
+		return functionValue;
 	}
 
 	/**

@@ -32,48 +32,48 @@ public interface Env {
 	 *
 	 * @return current time in epoch milliseconds
 	 */
-	public long getCurrentTime();
+	long getCurrentTime();
 
 	/**
 	 * Get default time zone
 	 *
 	 * @return default time zone
 	 */
-	public TimeZone getTimeZone();
+	TimeZone getTimeZone();
 
 	/**
 	 * Get file system
 	 *
 	 * @return Hadoop file system
 	 */
-	public FileSystem getFileSystem();
+	FileSystem getFileSystem();
 
 	/**
 	 * Creates new context
 	 *
 	 * @return new global context
 	 */
-	public Context newContext();
+	Context newContext();
 
 	/**
 	 * Get renderer
 	 *
 	 * @return new renderer
 	 */
-	public Renderer getRenderer();
+	Renderer getRenderer();
 
 	/**
 	 * Get executor service
 	 *
 	 * @return executor service
 	 */
-	public ExecutorService getExecutorService();
+	ExecutorService getExecutorService();
 
 	/**
 	 * Get error handler
 	 *
 	 * @return error handler
 	 */
-	public ErrorHandler getErrorHandler();
+	ErrorHandler getErrorHandler();
 	
 }

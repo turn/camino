@@ -16,8 +16,7 @@ package com.turn.camino;
 
 import com.google.common.collect.ImmutableMap;
 import com.turn.camino.config.*;
-import com.turn.camino.render.RenderException;
-import com.turn.camino.render.Renderer;
+import com.turn.camino.render.*;
 
 import java.io.IOException;
 import java.util.*;
@@ -25,7 +24,6 @@ import java.util.concurrent.*;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.turn.camino.render.TimeValue;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.testng.annotations.AfterClass;
@@ -47,7 +45,6 @@ public class CaminoTest {
 	private final static double EPSILON = 1e-6;
 	private final static Map<String,String> NULL_TAGS = null;
 
-	private Env env;
 	private Camino camino;
 	private ExecutorService executorService;
 
@@ -61,7 +58,7 @@ public class CaminoTest {
 		FileSystem fileSystem = mock(FileSystem.class);
 
 		// mock environment
-		env = mock(Env.class);
+		Env env = mock(Env.class);
 		when(env.getFileSystem()).thenReturn(fileSystem);
 		camino = new Camino(env, ConfigBuilder.create().buildLocal());
 
@@ -292,26 +289,24 @@ public class CaminoTest {
 		double metricValue = 456.78;
 
 		// set up metric and associated path status
-		Metric metric = new Metric("m1", "age", "sum");
+		Metric metric = new Metric("m1", "age", "sum", "testAgg", 0);
 		long lastModifiedDate = System.currentTimeMillis();
 		PathStatus pathStatus = new PathStatus("myPath", "/path/here/", mock(Path.class), of(
 				new PathDetail("/foo/bar", false, 1000, lastModifiedDate)), null);
 
 		// mock renderer to test metric-level property
 		Renderer renderer = mock(Renderer.class);
-		mockMetricFunction(renderer, metric, metricValue);
 
 		// set up context and environment
 		Env env = mock(Env.class);
 		Context context = mockGlobalContext(env);
-		Context childContext = mockChildContext(context, context, env);
+		Function aggFunction = mockMetricFunction(context, "testAgg", metricValue);
 
 		// compute metric
 		MetricDatum metricDatum = camino.computeMetric(metric, pathStatus, renderer, context);
 
-		// verify that metric property was rendered and set in child context
-		verify(childContext).setProperty("metric", metric);
-		verify(childContext).setProperty("pathStatus", pathStatus);
+		// verify that aggregate function was called
+		verify(aggFunction).invoke(any(List.class), any(Context.class));
 
 		// verify that correct value was passed back
 		assertEquals(metricDatum.getMetricId().getFullName(), "myPath.m1");
@@ -333,7 +328,7 @@ public class CaminoTest {
 		when(renderer.render(eq("<%=pkv%>"), any(Context.class))).thenReturn("1234");
 
 		// test named metric
-		Metric metric = new Metric("m1", "foo", "avg");
+		Metric metric = new Metric("m1", "foo", "avg", null, 0);
 		MetricId metricId = camino.getMetricId(metric, pathStatus, renderer, context);
 		assertNotNull(metricId);
 		assertEquals(metricId.getName(), "m1");
@@ -343,7 +338,7 @@ public class CaminoTest {
 		assertEquals(metricId.getTags().get(0).getValue(), "1234");
 
 		// test unnamed metric
-		metric = new Metric(null, "age", "max");
+		metric = new Metric(null, "age", "max", null, 0);
 		metricId = camino.getMetricId(metric, pathStatus, renderer, context);
 		assertNotNull(metricId);
 		assertEquals(metricId.getName(), "age");
@@ -367,13 +362,12 @@ public class CaminoTest {
 		double metricValue = 123456;
 		Env env = mock(Env.class);
 		Context context = mockGlobalContext(env);
-		mockChildContext(context, context, env);
 
 		// mock renderer
 		Renderer renderer = mock(Renderer.class);
-		mockMetricFunction(renderer, "age", metricValue);
-		mockMetricFunction(renderer, "size", metricValue);
-		mockMetricFunction(renderer, "count", metricValue);
+		mockMetricFunction(context, "age", metricValue);
+		mockMetricFunction(context, "size", metricValue);
+		mockMetricFunction(context, "count", metricValue);
 		when(renderer.render(eq("big_data"), any(Context.class))).thenReturn("big_data");
 		when(renderer.render(eq("/app/big_data"), any(Context.class))).thenReturn("/app/big_data");
 		List<Path> paths = of(new Path("big_data", "/app/big_data"));
@@ -519,9 +513,6 @@ public class CaminoTest {
 
 		// mock renderer
 		Renderer renderer = mock(Renderer.class);
-		mockMetricFunction(renderer, "age", 1.0);
-		mockMetricFunction(renderer, "size", 1.0);
-		mockMetricFunction(renderer, "count", 1.0);
 		when(renderer.render(eq("theList"), any(Context.class))).thenReturn(Lists.
 				newArrayList("a", "b"));
 		when(renderer.render(eq("thePath"), any(Context.class))).thenReturn("thePath");
@@ -563,9 +554,6 @@ public class CaminoTest {
 
 		// mock renderer
 		Renderer renderer = mock(Renderer.class);
-		mockMetricFunction(renderer, "age", 1.0);
-		mockMetricFunction(renderer, "size", 1.0);
-		mockMetricFunction(renderer, "count", 1.0);
 		when(renderer.render(eq("outerList"), any(Context.class))).thenReturn(Lists.
 				newArrayList("a", "b"));
 		when(renderer.render(eq("innerList"), any(Context.class))).thenReturn(Lists.
@@ -668,6 +656,7 @@ public class CaminoTest {
 	public void testGetPathMetrics() throws InvalidNameException, WrongTypeException,
 			RenderException, IOException {
 
+		long now = System.currentTimeMillis();
 		double ageValue = 12340000;
 		double sizeValue = 10000;
 		double countValue = 5;
@@ -682,14 +671,22 @@ public class CaminoTest {
 
 		// mock environment
 		Env env = mock(Env.class);
-		mockFileSystem(env);
+		FileSystem fileSystem = mockFileSystem(env);
+		org.apache.hadoop.fs.Path path1 = new org.apache.hadoop.fs.Path("/app/data");
+		FileStatus[] fss = new FileStatus[] {
+				new FileStatus(15000, false, 3, 64*1024*1024, now - 10000, path1)};
+		when(fileSystem.globStatus(any(org.apache.hadoop.fs.Path.class)))
+				.thenReturn(fss);
 		Context context = mockGlobalContext(env);
-		List<Context> childContexts = mockChildContexts(5, context, context, env);
-		mockChildContexts(3, childContexts.get(0), context, env);
-		mockChildContexts(3, childContexts.get(1), context, env);
-		mockChildContexts(3, childContexts.get(2), context, env);
-		mockChildContexts(3, childContexts.get(3), context, env);
-		mockChildContexts(3, childContexts.get(4), context, env);
+		mockMetricFunction(context, "age", ageValue);
+		mockMetricFunction(context, "size", sizeValue);
+		mockMetricFunction(context, "count", countValue);
+		List<Context> childContexts = mockChildContexts(2, context, context, env);
+		for (Context childContext : childContexts) {
+			mockMetricFunction(childContext, "age", ageValue);
+			mockMetricFunction(childContext, "size", sizeValue);
+			mockMetricFunction(childContext, "count", countValue);
+		}
 
 		// mock renderer
 		Renderer renderer = mock(Renderer.class);
@@ -704,9 +701,6 @@ public class CaminoTest {
 				.thenReturn("do_foo", "do_bar");
 		when(renderer.render(eq("<%=root%>/<%=nom%>"), any(Context.class)))
 				.thenReturn("/t/foo", "/t/bar");
-		mockMetricFunction(renderer, "age", ageValue);
-		mockMetricFunction(renderer, "size", sizeValue);
-		mockMetricFunction(renderer, "count", countValue);
 		when(env.getRenderer()).thenReturn(renderer);
 
 		// set executor service
@@ -720,7 +714,7 @@ public class CaminoTest {
 		verify(env).newContext();
 		verify(env).getRenderer();
 		verify(context).setProperty("root", "/app/data");
-		verify(context, times(5)).createChild();
+		verify(context, times(2)).createChild();
 
 		// check for paths
 		assertEquals(pathMetrics.size(), 3);
@@ -765,6 +759,7 @@ public class CaminoTest {
 			RenderException, IOException {
 
 		// test data
+		long now = System.currentTimeMillis();
 		double ageValue = 12340000;
 		double sizeValue = 10000;
 		double countValue = 5;
@@ -772,7 +767,12 @@ public class CaminoTest {
 
 		// mock environment
 		Env env = mock(Env.class);
-		mockFileSystem(env);
+		FileSystem fileSystem = mockFileSystem(env);
+		org.apache.hadoop.fs.Path path1 = new org.apache.hadoop.fs.Path("/app/data");
+		FileStatus[] fss = new FileStatus[] {
+				new FileStatus(15000, false, 3, 64*1024*1024, now - 10000, path1)};
+		when(fileSystem.globStatus(any(org.apache.hadoop.fs.Path.class)))
+				.thenReturn(fss);
 		Context context = mockGlobalContext(env);
 		List<Context> childContexts = mockChildContexts(1, context, context, env);
 		mockChildContexts(3, childContexts.get(0), context, env);
@@ -781,9 +781,9 @@ public class CaminoTest {
 		Renderer renderer = mock(Renderer.class);
 		when(renderer.render(eq("path"), any(Context.class))).thenReturn("path");
 		when(renderer.render(eq("value"), any(Context.class))).thenReturn("value");
-		mockMetricFunction(renderer, "age", ageValue);
-		mockMetricFunction(renderer, "size", sizeValue);
-		mockMetricFunction(renderer, "count", countValue);
+		mockMetricFunction(context, "age", ageValue);
+		mockMetricFunction(context, "size", sizeValue);
+		mockMetricFunction(context, "count", countValue);
 		when(env.getRenderer()).thenReturn(renderer);
 
 		Camino camino = new Camino(env, config);
@@ -901,6 +901,21 @@ public class CaminoTest {
 	}
 
 	/**
+	 * Mock set property of a context
+	 *
+	 * @param context context
+	 * @param name name of property
+	 * @param type type of value
+	 * @param value value to set
+	 * @throws WrongTypeException
+	 */
+	protected static <T> void mockSetProperty(Context context, String name, Class<T> type,
+			T value) throws WrongTypeException {
+		when(context.getProperty(name)).thenReturn(value);
+		when(context.getProperty(name, type)).thenReturn(value);
+	}
+
+	/**
 	 * Mocks a child context
 	 *
 	 * @param parent parent context
@@ -942,28 +957,16 @@ public class CaminoTest {
 	/**
 	 * Mock a metric function
 	 *
-	 * @param renderer renderer
-	 * @param metric metric
+	 * @param context context
+	 * @param name name of function
 	 * @param metricValue static value returned by function
 	 */
-	protected static void mockMetricFunction(Renderer renderer, Metric metric, double metricValue)
-			throws RenderException {
-		mockMetricFunction(renderer, metric.getFunction(), metricValue);
-		when(renderer.render(contains(metric.getFunction()), any(Context.class)))
-				.thenReturn(metricValue);
-	}
-
-	/**
-	 * Mock a metric function
-	 *
-	 * @param renderer renderer
-	 * @param function metric function
-	 * @param metricValue static value returned by function
-	 */
-	protected static void mockMetricFunction(Renderer renderer, String function, double metricValue)
-			throws RenderException {
-		when(renderer.render(contains("<%=" + function + "("), any(Context.class)))
-				.thenReturn(metricValue);
+	protected static Function mockMetricFunction(Context context, String name, double metricValue)
+			throws FunctionCallException, WrongTypeException {
+		Function aggFunction = mock(Function.class);
+		when(aggFunction.invoke(any(List.class), any(Context.class))).thenReturn(metricValue);
+		mockSetProperty(context, name, Function.class, aggFunction);
+		return aggFunction;
 	}
 
 	interface PathMetricsFuture extends Future<PathMetrics> {}

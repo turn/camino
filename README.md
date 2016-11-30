@@ -53,8 +53,9 @@ document is the template of Camino configuration.
 					{
 						/** Metric */
 						"name": "metric name",
-						"function": "metric function",  // optional
-						"aggregate": "metric aggregate" // optional
+						"function": "metric function",       // optional
+						"aggregate": "metric aggregate",     // optional
+						"aggFunction": "aggregate function"  // optional
 					}
 				]
 			} //, ...
@@ -173,6 +174,27 @@ The summary of when metrics are included:
     - Add *avgSize*
     - Add *sumSize*
 
+#### Custom Metrics
+
+Paths can have one or more custom metrics, which must be user-defined. If a
+Camino path resolves to at least one file system path, then the custom metric
+will apply.
+
+Conceptually, a Camino path can resolve to multiple file system paths due to
+the use of wild cards. This is why a metric must have a *function* to compute
+the value of a file system path and also an *aggregate* to combine individual
+file system path metric into one single metric. The function should be defined
+as a lambda expression with two arguments (the first being a Metric instance
+and the second a PathDetail object) in the properties section of the
+configuration. See below on how to define a function.
+
+The aggregate can be *sum*, *avg*, *max*, and *min*. These affect the behavior
+of the default metric aggregation function.
+
+Additionally, if the aggregation is not feasible with the built-in four
+aggregate types, you can provide custom aggregation via an *aggFunction*, which
+is also defined in the properties section.
+
 ### Repeat
 
 A repeat is a way to templatize definition of paths by iterating over a list
@@ -213,8 +235,8 @@ of executing the _timeFormat_ function on the property _date_.
 
 ### Native Types
 
-Camino has the following data types: long, double, string, timeValue, list and
-dictionary.
+Camino has the following data types: long, double, string, timeValue, list,
+dictionary, and function.
 
 There are two primitive numeric types in Camino, namely Java long (64-bit
 signed integer), and Java double (64-bit floating point number). The parser
@@ -239,7 +261,7 @@ initialized using the [] operator for list and {} operator for dictionary.
 
     "properties": {
         "names": "<%=['Amy','Bob','Chuck','Dave']%>",
-        "idmap": "<%={'6DKA431':'Amy','3KER481':'Dave','2QJZ387':'Chuck'}%>""
+        "idmap": "<%={'6DKA431':'Amy','3KER481':'Dave','2QJZ387':'Chuck'}%>"
     }
 
 Member access to list and dictionary is thru' the [] operator, like so:
@@ -247,7 +269,58 @@ Member access to list and dictionary is thru' the [] operator, like so:
     <%=names[3]%>
     <%=idmap['2QJZ387']%>
 
-### Functions
+Functions are first-class objects in Camino. They are defined as properties.
+The keyword *fn* signify an expression as a lambda expression, followed by
+parameters and the body of the function after the arrow token *->*.
+
+    "properties": {
+        "myFunc": "<%=fn(a) -> add(a,1)%>"
+    }
+
+### POJO access
+
+Camino defines a small set of Java classes that Camino expressions can access and
+operate on. Some fields of these Java classes can be accessed via the dot operator.
+
+For example, the *now()* function returns an instance of the TimeValue class
+which contains the time and the time zone. To retrieve the UTC milliseconds,
+you can use this expression:
+
+    "<%=now().timeMillis%>"
+
+Currently there are a number Camino classes that have member access:
+
+- *Path*:
+  - *name*: name of path
+  - *value*: value of path
+  - *metrics*: list of custom metrics
+  - *tags*: list of tags
+  - *expectedCreationTime*: expression of expected creation time of path
+- *Tag*:
+  - *key*: returns key of tag
+  - *value*: returns value of tag
+- *Metric*:
+  - *name*: name of metric
+  - *function*: function to compute metrics on file system path
+  - *aggregate*: aggregate type
+  - *aggFunction*: aggregation function
+  - *defaultValue*: default value of metric
+- *TimeValue*:
+  - *timeZone*: time zone ID
+  - *timeMillis*: UTC time in milliseconds
+- *PathStatus*:
+  - *name*: name of path (resolved from Path in configuration)
+  - *value*: value of path (resolved from Path in configuration)
+  - *path*: resolved file system path pattern
+  - *pathDetails*: list of PathDetail objects
+  - *expectedCreationTime*: resolved expected creation time of path
+- *PathDetail*:
+  - *pathValue*: path value, actual file system path
+  - *lastModifiedTime*: last modified time of this path
+  - *directory*: whether the file system path is a directory or not
+  - *length*: length of file system path
+
+### Built-inFunctions
 
 Camino EL provides a number of built-in functions.
 
@@ -283,11 +356,20 @@ Camino EL provides a number of built-in functions.
 	parsing time string using format string and set to time zone.
 - *timeAdd(timeValue, amount, unit)*: Performs time addition. Adds amount of
 	time unit to _timeValue_.
+- *timeToUnixDay(timeValue)*: Converts time value to number of days since
+    Jan 1st, 1970 in the time zone of the time value.
+- *unixDayToTime(unixDay, [timeZone])*: Converts number of days since Jan 1st,
+    1970 to time value of either the specified time zone or the system time
+    zone.
 
 #### Collection functions
 
 - *list(...)*: Creates a list. Accepts any number of arguments.
 - *listGet(list, index)*: Gets an element from a list at index.
+- *listFirst(list, defaultValue)*: Gets first element of a list, or default
+    value if list is empty.
+- *listLast(list, defaultValue)*: Gets last element of list, or default value
+    if list is empty.
 - *dict(...)*: Creates a dictionary. Accepts even number of arguments, where
 	argument _2*i_ is the key and _2*i+1_ is the value.
 - *dictGet(dict, key)*: Gets a value from dictionary given a key.
@@ -337,7 +419,8 @@ Example Configuration
 			"amy": "<%={'name':'Amy','dropHour':4)%>",
 			"bob": "<%={'name':'Bob','dropHour':6)%>",
 			"chuck": "<%={'name':'Chuck','dropHour':7)%>",
-			"users": "<%=[amy,bob,chuck]%>"
+			"users": "<%=[amy,bob,chuck]%>",
+			"pathDate": "<%=fn(m,p)->timeParse(listLast(split(p.pathValue),'/'),'yyyyMMdd','US/Pacific').timeMillis%>"
 		],
 		"paths": [
 			{
@@ -354,13 +437,28 @@ Example Configuration
 				"list": "<%=users%>",
 				"paths": [
 					{
-						"name": "dailyAup_<%=dictGet(aup,'name')%>",
+						"name": "dailyUserData_<%=user['name']%>",
 						"tags": {
-						    "pathName": "user",
+						    "pathName": "dailyUserData",
 							"user": "<%=user['name']'%>"
 						},
 						"value": "<%=userDir%>/<%=user['name']%>/<%=timeFormat(today('US/Pacific'),'yyyyMMdd')%>/part-*",
 						"expectedCreationTime": "<%=timeAdd(today('US/Pacific'),user['dropHour'],'h')%>"
+					},
+					{
+					    "name": "lastDate_<%=user['name']%>",
+					    "tags": {
+						    "pathName": "lastDate",
+							"user": "<%=user['name']'%>"
+					    },
+						"value": "<%=userDir%>/<%=user['name']%>/[0-9]*",
+						"metrics": [
+						    {
+						        "name": "maxDate",
+						        "function": "pathDate",
+						        "aggregate": "max"
+						    }
+						]
 					}
 				]
 			}

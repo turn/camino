@@ -14,61 +14,63 @@
  */
 package com.turn.camino.lang.ast;
 
+import com.google.common.collect.ImmutableList;
+
+import java.util.List;
+
 /**
- * Member access
+ * Function literal
  *
- * Represents access of a member of an object. Essentially <i>object.member</i>.
+ * Definition of a user-defined function
  *
  * @author llo
  */
-public class MemberAccess extends Expression {
+public class FunctionLiteral extends Literal {
 
-	private final Expression parent;
-	private final Identifier child;
+	private final List<Identifier> parameters;
+	private final Block body;
 
 	/**
 	 * Constructor
 	 *
-	 * @param location location of member access
-	 * @param parent parent of memeber access
-	 * @param child child of member access
+	 * @param location location of literal
 	 */
-	public MemberAccess(Location location, Expression parent, Identifier child) {
+	public FunctionLiteral(Location location, List<Identifier> parameters, Block body) {
 		super(location);
-		this.parent = parent;
-		this.child = child;
+		this.parameters = ImmutableList.copyOf(parameters);
+		this.body = body;
 	}
 
 	/**
-	 * Returns expression to compute object
+	 * Get function parameters
 	 *
-	 * @return parent expression
+	 * @return list of identifiers as the parameters of this function
 	 */
-	public Expression getParent() {
-		return parent;
+	public List<Identifier> getParameters() {
+		return parameters;
 	}
 
 	/**
-	 * Returns expression to access child (either identifier or function call)
+	 * Gets the body of function
 	 *
-	 * @return child expression
+	 * @return body of function
 	 */
-	public Identifier getChild() {
-		return child;
+	public Block getBody() {
+		return body;
 	}
 
 	/**
-	 * Accepts visitor to this member access
+	 * Accepts a visitor to this list initializer
 	 *
 	 * @param visitor visitor
 	 * @param context external context
 	 * @param <O> return type
 	 * @param <C> context type
-	 * @return output of accessing member
+	 * @return return value
 	 * @throws E
 	 */
 	@Override
-	public <O,C,E extends Throwable> O accept(Visitor<O,C,E> visitor, C context) throws E {
+	public <O, C, E extends Throwable> O accept(Visitor<O, C, E> visitor, C context) throws E {
 		return visitor.visit(this, context);
 	}
 

@@ -14,6 +14,8 @@
  */
 package com.turn.camino;
 
+import com.turn.camino.annotation.Member;
+
 /**
  * Path detail
  *
@@ -49,6 +51,7 @@ public class PathDetail {
 	 *
 	 * @return last modified time in epoch milliseconds
 	 */
+	@Member("lastModifiedTime")
 	public long getLastModifiedTime() {
 		return lastModifiedTime;
 	}
@@ -58,6 +61,7 @@ public class PathDetail {
 	 *
 	 * @return path value
 	 */
+	@Member("pathValue")
 	public String getPathValue() {
 		return pathValue;
 	}
@@ -67,6 +71,7 @@ public class PathDetail {
 	 *
 	 * @return true if path is a directory, false otherwise
 	 */
+	@Member("directory")
 	public boolean isDirectory() {
 		return directory;
 	}
@@ -76,6 +81,7 @@ public class PathDetail {
 	 *
 	 * @return length of path
 	 */
+	@Member("length")
 	public long getLength() {
 		return length;
 	}

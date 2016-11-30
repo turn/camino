@@ -26,7 +26,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 
 /**
@@ -34,20 +33,10 @@ import com.google.common.collect.Maps;
  *
  * @author llo
  */
-public class CollectionFunctions implements FunctionFamily {
+public class CollectionFunctions {
 
 	private final static Validation<FunctionCallException> VALIDATION =
-			new Validation<FunctionCallException>(new FunctionCallExceptionFactory());
-
-	@Override
-	public Map<String, Function> getFunctions() {
-		return ImmutableMap.<String, Function>builder()
-				.put("list", new ListCreate())
-				.put("listGet", new ListGet())
-				.put("dict", new DictCreate())
-				.put("dictGet", new DictGet())
-				.build();
-	}
+			new Validation<>(new FunctionCallExceptionFactory());
 
 	/**
 	 * Function to create a list
@@ -79,6 +68,44 @@ public class CollectionFunctions implements FunctionFamily {
 						index, list.size()));
 			}
 			return list.get(index);
+		}
+	}
+
+	/**
+	 * Function to get first element
+	 */
+	public static class ListFirst implements Function {
+		@Override
+		public Object invoke(List<?> params, Context context) throws FunctionCallException {
+			VALIDATION.requireListSize(params, 1, 2, Message.prefix("parameters"));
+			List<?> list = VALIDATION.requireType(params.get(0), List.class,
+					Message.prefix("list"));
+			if (list.size() > 0) {
+				return list.get(0);
+			} else if (params.size() > 1) {
+				return params.get(1);
+			} else {
+				throw new FunctionCallException("Cannot get first element of empty list");
+			}
+		}
+	}
+
+	/**
+	 * Function to get last element
+	 */
+	public static class ListLast implements Function {
+		@Override
+		public Object invoke(List<?> params, Context context) throws FunctionCallException {
+			VALIDATION.requireListSize(params, 1, 2, Message.prefix("parameters"));
+			List<?> list = VALIDATION.requireType(params.get(0), List.class,
+					Message.prefix("list"));
+			if (list.size() > 0) {
+				return list.get(list.size() - 1);
+			} else if (params.size() > 1) {
+				return params.get(1);
+			} else {
+				throw new FunctionCallException("Cannot get last element of empty list");
+			}
 		}
 	}
 

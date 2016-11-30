@@ -32,10 +32,12 @@ public class MetricTest {
 	 */
 	@Test
 	public void testConstructor() {
-		Metric metric = new Metric("abc", "age", "sum");
+		Metric metric = new Metric("abc", "age", "sum", "agg", 0);
 		assertEquals(metric.getName(), "abc");
 		assertEquals(metric.getFunction(), "age");
 		assertEquals(metric.getAggregate(), "sum");
+		assertEquals(metric.getAggFunction(), "agg");
+		assertEquals(metric.getDefaultValue(), 0, 1e-5);
 	}
 
 }

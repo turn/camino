@@ -20,7 +20,6 @@ import com.turn.camino.render.FunctionCallException;
 import com.turn.camino.render.FunctionCallExceptionFactory;
 import com.turn.camino.util.Validation;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -29,7 +28,6 @@ import org.apache.hadoop.fs.FileUtil;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import static com.turn.camino.util.Message.prefix;
 
@@ -38,19 +36,14 @@ import static com.turn.camino.util.Message.prefix;
  *
  * @author llo
  */
-public class FileSystemFunctions implements FunctionFamily {
+public class FileSystemFunctions {
 
 	private final static Validation<FunctionCallException> VALIDATION =
-			new Validation<FunctionCallException>(new FunctionCallExceptionFactory());
+			new Validation<>(new FunctionCallExceptionFactory());
 
-	@Override
-	public Map<String, Function> getFunctions() {
-		return ImmutableMap.<String, Function>builder()
-				.put("dirList", new DirList())
-				.put("dirListName", new DirListName())
-				.build();
-	}
-
+	/**
+	 * Abstract directory listing function
+	 */
 	protected static abstract class AbstractDirList implements Function {
 
 		protected org.apache.hadoop.fs.Path[] dirList(FileSystem fileSystem,
@@ -74,7 +67,9 @@ public class FileSystemFunctions implements FunctionFamily {
 		}
 	}
 
-
+	/**
+	 * Directory listing function
+	 */
 	public static class DirList extends AbstractDirList {
 		@Override
 		public Object invoke(List<?> params, Context context) throws FunctionCallException {
@@ -95,6 +90,9 @@ public class FileSystemFunctions implements FunctionFamily {
 		}
 	}
 
+	/**
+	 * Directory listing function only returning name of files
+	 */
 	public static class DirListName extends AbstractDirList {
 		@Override
 		@SuppressWarnings("unchecked")

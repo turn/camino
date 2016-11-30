@@ -15,9 +15,11 @@
 package com.turn.camino;
 
 import com.turn.camino.config.*;
+import com.turn.camino.render.Function;
 import com.turn.camino.render.RenderException;
 import com.turn.camino.render.Renderer;
 import com.turn.camino.render.TimeValue;
+import com.turn.camino.render.functions.FunctionEnum;
 import com.turn.camino.util.Message;
 import com.turn.camino.util.MessageExceptionFactory;
 import com.turn.camino.util.Validation;
@@ -251,24 +253,24 @@ public class Camino {
 		List<Metric> metrics = Lists.newLinkedList();
 
 		// add simple metrics
-		metrics.add(new Metric("age", "age", "max"));
-		metrics.add(new Metric("size", "size", "sum"));
-		metrics.add(new Metric("count", "count", null));
+		metrics.add(new Metric("age", FunctionEnum.AGE.getName(), "max", null, 0));
+		metrics.add(new Metric("size", FunctionEnum.SIZE.getName(), "sum", null, 0));
+		metrics.add(new Metric("count", null, null, FunctionEnum.COUNT.getName(), 0));
 
 		// add agg metrics if path contains wild card
 		if (containsWildcard(pathStatus.getValue())) {
-			metrics.add(new Metric("maxAge", "age", "max"));
-			metrics.add(new Metric("minAge", "age", "min"));
-			metrics.add(new Metric("avgAge", "age", "avg"));
-			metrics.add(new Metric("maxSize", "size", "max"));
-			metrics.add(new Metric("minSize", "size", "min"));
-			metrics.add(new Metric("avgSize", "size", "avg"));
-			metrics.add(new Metric("sumSize", "size", "sum"));
+			metrics.add(new Metric("maxAge", FunctionEnum.AGE.getName(), "max", null, 0));
+			metrics.add(new Metric("minAge", FunctionEnum.AGE.getName(), "min", null, 0));
+			metrics.add(new Metric("avgAge", FunctionEnum.AGE.getName(), "avg", null, 0));
+			metrics.add(new Metric("maxSize", FunctionEnum.SIZE.getName(), "max", null, 0));
+			metrics.add(new Metric("minSize", FunctionEnum.SIZE.getName(), "min", null, 0));
+			metrics.add(new Metric("avgSize", FunctionEnum.SIZE.getName(), "avg", null, 0));
+			metrics.add(new Metric("sumSize", FunctionEnum.SIZE.getName(), "sum", null, 0));
 		}
 
 		// add creation delay if expected creation time is defined
 		if (pathStatus.getExpectedCreationTime() != null) {
-			metrics.add(new Metric("creationDelay", "creationDelay", null));
+			metrics.add(new Metric("creationDelay", null, null, FunctionEnum.CREATION_DELAY.getName(), 0));
 		}
 
 		return metrics;
@@ -403,11 +405,13 @@ public class Camino {
 		MetricId metricId = getMetricId(metric, pathStatus, renderer, context);
 
 		// invoke metric function
-		Context metricContext = context.createChild();
-		metricContext.setProperty("metric", metric);
-		metricContext.setProperty("pathStatus", pathStatus);
-		String code = String.format("<%%=%s(metric,pathStatus)%%>", metric.getFunction());
-		double value = validation.requireType(renderer.render(code, metricContext),
+		Function aggFunction = FunctionEnum.METRIC_AGG.getFunction();
+		if (metric.getAggFunction() != null) {
+			aggFunction = validation.requireNotNull(context.getProperty(metric.getAggFunction(), Function.class),
+					Message.prefix(String.format("aggFunction %s not found", metric.getAggFunction())));
+		}
+		List<?> params = Lists.newArrayList(metric, pathStatus);
+		double value = validation.requireType(aggFunction.invoke(params, context),
 				Double.class, Message.prefix("expected double"));
 
 		// return metric data

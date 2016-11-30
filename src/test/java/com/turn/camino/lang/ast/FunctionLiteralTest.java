@@ -14,39 +14,36 @@
  */
 package com.turn.camino.lang.ast;
 
-import java.util.List;
-
 import com.google.common.collect.ImmutableList;
 import org.testng.annotations.Test;
+
+import java.util.Collections;
+import java.util.List;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertTrue;
 
 /**
- * Unit test for FunctionCall
+ * Unit test for function literal
  *
  * @author llo
  */
 @Test
-public class FunctionCallTest {
+public class FunctionLiteralTest {
 
 	private Location location = new Location(2, 3);
 
 	@Test
-	public void testFunctionCall() throws RuntimeException {
-		List<Expression> arguments = ImmutableList.<Expression>of(
-				new StringLiteral(location, "foo"), new LongLiteral(location, 1),
-				new StringLiteral(location, "bar"));
-		FunctionCall functionCall = new FunctionCall(location, new Identifier(location, "myFunc"),
-				arguments);
-		assertEquals(functionCall.getLocation(), location);
-		assertTrue(functionCall.getFunctionValue() instanceof Identifier);
-		assertEquals(((Identifier) functionCall.getFunctionValue()).getName(), "myFunc");
-		assertEquals(functionCall.getArguments().size(), 3);
+	public void testFunctionLiteral() {
+		List<Identifier> parameters = ImmutableList.of(new Identifier(location, "x"));
+		Block body = new Block(location, Collections.<Expression>emptyList());
+		FunctionLiteral functionLiteral = new FunctionLiteral(location, parameters, body);
+		assertEquals(functionLiteral.getLocation(), location);
+		assertEquals(functionLiteral.getParameters().size(), 1);
+		assertEquals(functionLiteral.getBody().getExpressions().size(), 0);
 		TestVisitor visitor = mock(TestVisitor.class);
-		functionCall.accept(visitor, "abc");
-		verify(visitor).visit(functionCall, "abc");
+		functionLiteral.accept(visitor, "here");
+		verify(visitor).visit(functionLiteral, "here");
 	}
 }

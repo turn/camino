@@ -14,7 +14,6 @@
  */
 package com.turn.camino.render.functions;
 
-import com.google.common.collect.ImmutableMap;
 import com.turn.camino.Context;
 import com.turn.camino.render.Function;
 import com.turn.camino.render.FunctionCallException;
@@ -24,27 +23,16 @@ import com.turn.camino.util.Validation;
 import static com.turn.camino.util.Message.*;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * Math functions
  *
  * @author llo
  */
-public class MathFunctions implements FunctionFamily {
+public class MathFunctions {
 
 	private final static Validation<FunctionCallException> VALIDATION =
-			new Validation<FunctionCallException>(new FunctionCallExceptionFactory());
-
-	@Override
-	public Map<String, Function> getFunctions() {
-		return ImmutableMap.<String, Function>builder()
-				.put("add", new Add())
-				.put("sub", new Subtract())
-				.put("mul", new Multiply())
-				.put("div", new Divide())
-				.build();
-	}
+			new Validation<>(new FunctionCallExceptionFactory());
 
 	public static abstract class ArithmeticFunction implements Function {
 		@Override

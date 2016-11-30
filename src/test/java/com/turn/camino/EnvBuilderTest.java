@@ -22,6 +22,7 @@ import org.testng.annotations.Test;
 
 import static org.mockito.Mockito.mock;
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNotNull;
 
 /**
  * Unit test for EnvBuilder
@@ -58,6 +59,21 @@ public class EnvBuilderTest {
 		assertEquals(env.getFileSystem(), fileSystem);
 		assertEquals(env.getTimeZone(), TimeZone.getDefault());
 		assertEquals(env.getExecutorService(), executorService);
+	}
+
+	/**
+	 * Test error handler
+	 */
+	@Test
+	public void testWithErrorHandler() {
+		Env env = new EnvBuilder().withFileSystem(mock(FileSystem.class))
+				.build();
+		assertNotNull(env.getErrorHandler());
+		ErrorHandler errorHandler = mock(ErrorHandler.class);
+		env = new EnvBuilder().withFileSystem(mock(FileSystem.class))
+				.withErrorHandler(errorHandler)
+				.build();
+		assertEquals(env.getErrorHandler(), errorHandler);
 	}
 
 	/**

@@ -14,6 +14,7 @@
  */
 package com.turn.camino;
 
+import com.turn.camino.annotation.Member;
 import com.turn.camino.config.Path;
 
 import com.google.common.collect.ImmutableList;
@@ -58,6 +59,7 @@ public class PathStatus {
 	 *
 	 * @return name of path
 	 */
+	@Member("name")
 	public String getName() {
 		return name;
 	}
@@ -67,6 +69,7 @@ public class PathStatus {
 	 *
 	 * @return value of path
 	 */
+	@Member("value")
 	public String getValue() {
 		return value;
 	}
@@ -76,6 +79,7 @@ public class PathStatus {
 	 *
 	 * @return path configuration
 	 */
+	@Member("path")
 	public Path getPath() {
 		return path;
 	}
@@ -85,6 +89,7 @@ public class PathStatus {
 	 *
 	 * @return immutable list of path details
 	 */
+	@Member("pathDetails")
 	public List<PathDetail> getPathDetails() {
 		return pathDetails;
 	}
@@ -94,6 +99,7 @@ public class PathStatus {
 	 *
 	 * @return expected creation time
 	 */
+	@Member("expectedCreationTime")
 	public TimeValue getExpectedCreationTime() {
 		return expectedCreationTime;
 	}

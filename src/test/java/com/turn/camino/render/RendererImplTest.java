@@ -18,12 +18,15 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.turn.camino.Context;
 import com.turn.camino.Env;
+import com.turn.camino.EnvBuilder;
 import com.turn.camino.WrongTypeException;
 
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 
+import com.turn.camino.render.functions.TimeFunctions;
+import org.apache.hadoop.fs.FileSystem;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -48,11 +51,15 @@ public class RendererImplTest {
 	 * Set up test environment
 	 */
 	@BeforeClass
-	public void setUp() {
+	public void setUp() throws WrongTypeException {
 		context = mock(Context.class);
 		Env env = mock(Env.class);
 		when(context.getEnv()).thenReturn(env);
 		when(context.getGlobalInstanceTime()).thenReturn(TIME);
+		when(context.getProperty("now")).thenReturn(new TimeFunctions.Now());
+		when(context.getProperty("now", Function.class)).thenReturn(new TimeFunctions.Now());
+		when(context.getProperty("timeAdd")).thenReturn(new TimeFunctions.TimeAdd());
+		when(context.getProperty("timeAdd", Function.class)).thenReturn(new TimeFunctions.TimeAdd());
 		when(env.getCurrentTime()).thenReturn(TIME);
 		when(env.getTimeZone()).thenReturn(TIME_ZONE);
 	}
@@ -288,11 +295,31 @@ public class RendererImplTest {
 	}
 
 	/**
+	 * Test rendering function literal which should return a function
+	 *
+	 * @throws RenderException
+	 * @throws WrongTypeException
+	 */
+	@Test
+	public void testFunctionLiteral() throws RenderException, WrongTypeException {
+
+		// test creating a function literal
+		Object value = renderer.render("<%=fn(a,b) -> add(a,b)%>", context);
+		assertTrue(value instanceof Function);
+
+		// test creating and executing a function literal
+		Env env = new EnvBuilder().withTimeZone(TimeZone.getDefault())
+				.withFileSystem(mock(FileSystem.class)).build();
+		value = renderer.render("<%=(fn(a,b) -> add(a,b))(3,4)%>", env.newContext());
+		assertTrue(value instanceof Number);
+		assertEquals(((Number) value).intValue(), 7);
+	}
+
+	/**
 	 * Test member access
 	 *
 	 * Note that while the grammar supports accessing object members the renderer doesn't
 	 */
-	@Test(expectedExceptions = RenderException.class)
 	public void testMemberAccess() throws RenderException, WrongTypeException {
 
 		// set up context with properties
@@ -302,7 +329,12 @@ public class RendererImplTest {
 		when(testContext.getProperty("t", TimeValue.class)).thenReturn(timeValue);
 
 		// test accessing member - throws exception
-		renderer.render("<%=t.getTime()%>", context);
+		Object value = renderer.render("<%=t.timeMillis%>", testContext);
+		assertTrue(value instanceof Number);
+		assertEquals(((Number) value).longValue(), TIME);
+		value = renderer.render("<%=t.timeZone%>", testContext);
+		assertTrue(value instanceof String);
+		assertEquals((String) value, TIME_ZONE.getID());
 	}
 
 	/**

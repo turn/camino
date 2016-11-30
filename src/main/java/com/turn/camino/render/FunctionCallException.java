@@ -25,4 +25,8 @@ public class FunctionCallException extends RenderException {
 		super(message);
 	}
 
+	public FunctionCallException(Throwable throwable) {
+		super(throwable);
+	}
+
 }
