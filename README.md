@@ -185,10 +185,11 @@ the use of wild cards. This is why a metric must have a *function* to compute
 the value of a file system path and also an *aggregate* to combine individual
 file system path metric into one single metric. The function should be defined
 as a lambda expression with two arguments (the first being a Metric instance
-and the second a PathStatus object) in the properties section of the
+and the second a PathDetail object) in the properties section of the
 configuration. See below on how to define a function.
 
-The aggregate can be *sum*, *avg*, *max*, and *min*.
+The aggregate can be *sum*, *avg*, *max*, and *min*. These affect the behavior
+of the default metric aggregation function.
 
 Additionally, if the aggregation is not feasible with the built-in four
 aggregate types, you can provide custom aggregation via an *aggFunction*, which
