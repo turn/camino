@@ -6,14 +6,31 @@
 
 	<repositories>
 		<repository>
+			<id>turn</id>
+			<url>http://maven.turn.com/content/repositories/turn</url>
+		</repository>	
+		<repository>
 			<id>cloudera</id>
 			<url>https://repository.cloudera.com/artifactory/cloudera-repos/</url>
 		</repository>
 	</repositories>
-
+	<distributionManagement>
+		<repository>
+			<id>turn</id>
+			<url>http://maven.turn.com/content/repositories/turn</url>
+		</repository>
+		<snapshotRepository>
+			<uniqueVersion>true</uniqueVersion>
+			<id>snapshots</id>
+			<name>Turn internal Maven repository for snapshots</name>
+			<url>http://maven.turn.com/content/repositories/snapshots</url>
+			<layout>default</layout>
+		</snapshotRepository>
+	</distributionManagement>
+ 
 	<groupId>com.turn</groupId>
 	<artifactId>turn-camino</artifactId>
-	<version>1.3-SNAPSHOT</version>
+	<version>1.3</version>
 
 	<dependencies>
 		<dependency>
@@ -165,7 +182,7 @@
 										<limit implementation="org.jacoco.report.check.Limit">
 											<counter>COMPLEXITY</counter>
 											<value>COVEREDRATIO</value>
-											<minimum>0.80</minimum>
+											<minimum>0.70</minimum>
 										</limit>
 									</limits>
 								</rule>
