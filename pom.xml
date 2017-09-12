@@ -29,7 +29,7 @@
 	</distributionManagement>
  
 	<groupId>com.turn</groupId>
-	<artifactId>turn-camino</artifactId>
+	<artifactId>camino</artifactId>
 	<version>1.3.2</version>
 
 	<dependencies>
