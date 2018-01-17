@@ -1,5 +1,5 @@
-/**
- * Copyright (C) 2014-2016, Turn Inc. All Rights Reserved.
+/*
+ * Copyright (C) 2014-2016, Amobee Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,12 +50,7 @@ public class Config {
 			@JsonProperty("paths") @JsonDeserialize(contentAs = Path.class)	List<Path> paths,
 			@JsonProperty("repeats") @JsonDeserialize(contentAs = Repeat.class) List<Repeat> repeats) {
 		this(location, includes, properties == null ? null : ConfigUtil.mapToList(properties,
-				new ConfigUtil.Transformer<String, String, Property>() {
-					@Override
-					public Property transform(String key, String value) {
-						return new Property(key, value);
-					}
-				}),
+				Property::new),
 				paths, repeats);
 	}
 

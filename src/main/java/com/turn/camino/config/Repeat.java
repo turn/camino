@@ -1,5 +1,5 @@
-/**
- * Copyright (C) 2014-2016, Turn Inc. All Rights Reserved.
+/*
+ * Copyright (C) 2014-2018, Amobee Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,9 +50,9 @@ public class Repeat {
 			@JsonProperty("repeats") @JsonDeserialize(contentAs = Repeat.class)	List<Repeat> repeats) {
 		this.var = var;
 		this.list = list;
-		this.paths = ImmutableList.copyOf(paths != null ? paths : Collections.<Path>emptyList());
+		this.paths = ImmutableList.copyOf(paths != null ? paths : Collections.emptyList());
 		this.repeats = ImmutableList.copyOf(repeats != null ? repeats :
-				Collections.<Repeat>emptyList());
+				Collections.emptyList());
 	}
 
 	/**
