@@ -1,5 +1,5 @@
-/**
- * Copyright (C) 2014-2016, Turn Inc. All Rights Reserved.
+/*
+ * Copyright (C) 2014-2018, Amobee Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,70 +41,50 @@ public class MetricFunctions {
 			new Validation<>(new FunctionCallExceptionFactory());
 
 	private final static ImmutableMap<String, AggregateFactory> AGGREGATES = ImmutableMap.<String, AggregateFactory>builder()
-			.put("sum", new AggregateFactory() {
+			.put("sum", () -> new Aggregate() {
+				double sum = 0;
 				@Override
-				public Aggregate newInstance() {
-					return new Aggregate() {
-						double sum = 0;
-						@Override
-						public void put(double value) {
-							sum += value;
-						}
-						@Override
-						public double get() {
-							return sum;
-						}
-					};
+				public void put(double value) {
+					sum += value;
+				}
+				@Override
+				public double get() {
+					return sum;
 				}
 			})
-			.put("avg", new AggregateFactory() {
+			.put("avg", () -> new Aggregate() {
+				double sum = 0;
+				double count = 0;
 				@Override
-				public Aggregate newInstance() {
-					return new Aggregate() {
-						double sum = 0;
-						double count = 0;
-						@Override
-						public void put(double value) {
-							sum += value;
-							count++;
-						}
-						@Override
-						public double get() {
-							return count > 0 ? sum / count : 0;
-						}
-					};
+				public void put(double value) {
+					sum += value;
+					count++;
+				}
+				@Override
+				public double get() {
+					return count > 0 ? sum / count : 0;
 				}
 			})
-			.put("max", new AggregateFactory() {
+			.put("max", () -> new Aggregate() {
+				double maxValue = -Double.MAX_VALUE;
 				@Override
-				public Aggregate newInstance() {
-					return new Aggregate() {
-						double maxValue = -Double.MAX_VALUE;
-						@Override
-						public void put(double value) {
-							maxValue = Math.max(maxValue, value);
-						}
-						@Override
-						public double get() {
-							return maxValue;
-						}
-					};
+				public void put(double value) {
+					maxValue = Math.max(maxValue, value);
+				}
+				@Override
+				public double get() {
+					return maxValue;
 				}
 			})
-			.put("min", new AggregateFactory() {
+			.put("min", () -> new Aggregate() {
+				double minValue = Double.MAX_VALUE;
 				@Override
-				public Aggregate newInstance() {
-					return new Aggregate() {
-						double minValue = Double.MAX_VALUE;
-						@Override
-						public void put(double value) {
-							minValue = Math.min(minValue, value);
-						}
-						@Override
-						public double get() {
-							return minValue;
-						}
-					};
+				public void put(double value) {
+					minValue = Math.min(minValue, value);
+				}
+				@Override
+				public double get() {
+					return minValue;
 				}
 			})
 			.build();

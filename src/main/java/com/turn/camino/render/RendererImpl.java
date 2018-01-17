@@ -1,5 +1,5 @@
-/**
- * Copyright (C) 2014-2016, Turn Inc. All Rights Reserved.
+/*
+ * Copyright (C) 2014-2018, Amobee Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,6 @@
  */
 package com.turn.camino.render;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.turn.camino.Context;
@@ -31,11 +30,11 @@ import static com.turn.camino.util.Message.full;
 import static com.turn.camino.util.Message.prefix;
 
 import java.io.StringReader;
-import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Renderer implementation
@@ -148,10 +147,11 @@ public class RendererImpl implements Renderer {
 		public Object visit(FunctionCall functionCall, Context context)
 				throws RenderException {
 			Expression funcExpr = functionCall.getFunctionValue();
-			Function function =
-					validation.requireType(validation.requireNotNull(funcExpr.accept(this, context),
-					Message.full(String.format("Function %s undefined", funcExpr))), Function.class,
-					Message.full(String.format("Expression %s not a function", funcExpr)));
+			Object object = funcExpr.accept(Evaluator.this, context);
+			Function function = validation.requireType(validation.requireNotNull(object,
+					Message.full(String.format("Expression %s not a function", funcExpr))),
+					Function.class,
+					Message.full(String.format("Function %s undefined", funcExpr)));
 			List<Object> params = Lists.newArrayListWithExpectedSize(functionCall.getArguments()
 					.size());
 			for (Expression argument : functionCall.getArguments()) {
@@ -346,28 +346,25 @@ public class RendererImpl implements Renderer {
 		 */
 		@Override
 		public Object visit(final FunctionLiteral functionLiteral, final Context rc) throws RenderException {
-			return new Function() {
-				@Override
-				public Object invoke(List<?> params, Context context) throws FunctionCallException {
-					// check parameters
-					List<Identifier> paramNames = functionLiteral.getParameters();
-					VALIDATION.requireListSize(params, paramNames.size(), paramNames.size(),
-							prefix("parameters"));
+			return (Function) (params, context) -> {
+				// check parameters
+				List<Identifier> paramNames = functionLiteral.getParameters();
+				VALIDATION.requireListSize(params, paramNames.size(), paramNames.size(),
+						prefix("parameters"));
 
-					// push params into child context
-					Context childContext = context.createChild();
-					Identifier[] names = paramNames.toArray(new Identifier[paramNames.size()]);
-					Object[] values = params.toArray();
-					for (int i = 0; i < names.length; i++) {
-						childContext.setProperty(names[i].getName(), values[i]);
-					}
+				// push params into child context
+				Context childContext = context.createChild();
+				Identifier[] names = paramNames.toArray(new Identifier[paramNames.size()]);
+				Object[] values = params.toArray();
+				for (int i = 0; i < names.length; i++) {
+					childContext.setProperty(names[i].getName(), values[i]);
+				}
 
-					// execute function body
-					try {
-						return visit(functionLiteral.getBody(), childContext);
-					} catch (RenderException e) {
-						throw new FunctionCallException(e);
-					}
+				// execute function body
+				try {
+					return visit(functionLiteral.getBody(), childContext);
+				} catch (RenderException e) {
+					throw new FunctionCallException(e);
 				}
 			};
 		}

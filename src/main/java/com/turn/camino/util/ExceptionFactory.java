@@ -1,5 +1,5 @@
-/**
- * Copyright (C) 2014-2016, Turn Inc. All Rights Reserved.
+/*
+ * Copyright (C) 2014-2018, Amobee Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ public interface ExceptionFactory<E extends Throwable> {
 	 * @param message message of exception
 	 * @return new exception
 	 */
-	public E newException(String message);
+	E newException(String message);
 
 	/**
 	 * Creates new exception
@@ -38,7 +38,7 @@ public interface ExceptionFactory<E extends Throwable> {
 	 * @param cause underlying cause of exception
 	 * @return new exception
 	 */
-	public E newException(String message, Throwable cause);
+	E newException(String message, Throwable cause);
 
 	/**
 	 * Creates new exception
@@ -46,6 +46,6 @@ public interface ExceptionFactory<E extends Throwable> {
 	 * @param cause underlying cause of exception
 	 * @return new exception
 	 */
-	public E newException(Throwable cause);
+	E newException(Throwable cause);
 
 }

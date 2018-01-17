@@ -1,5 +1,5 @@
-/**
- * Copyright (C) 2014-2016, Turn Inc. All Rights Reserved.
+/*
+ * Copyright (C) 2014-2018, Amobee Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,12 +55,7 @@ public class Path {
 					contentAs = String.class) Map<String, String> tags,
 			@JsonProperty("expectedCreationTime") String expectedCreationTime) {
 		this(name, value, metrics, tags == null ? null : ConfigUtil.mapToList(tags,
-				new ConfigUtil.Transformer<String, String, Tag>() {
-					@Override
-					public Tag transform(String key, String value) {
-						return new Tag(key, value);
-					}
-				}), expectedCreationTime);
+				Tag::new), expectedCreationTime);
 	}
 
 	/**
@@ -79,8 +74,8 @@ public class Path {
 		this.name = name;
 		this.value = value;
 		this.metrics = ImmutableList.copyOf(metrics != null ? metrics :
-				Collections.<Metric>emptyList());
-		this.tags = ImmutableList.copyOf(tags != null ? tags : Collections.<Tag>emptyList());
+				Collections.emptyList());
+		this.tags = ImmutableList.copyOf(tags != null ? tags : Collections.emptyList());
 		this.expectedCreationTime = expectedCreationTime;
 	}
 
