@@ -14,20 +14,21 @@
  */
 package com.turn.camino.render.functions;
 
+import com.google.common.collect.ImmutableList;
 import com.turn.camino.Context;
 import com.turn.camino.render.Function;
 import com.turn.camino.render.FunctionCallException;
 import com.turn.camino.render.FunctionCallExceptionFactory;
+import com.turn.camino.util.Message;
 import com.turn.camino.util.Validation;
 
 import com.google.common.collect.Lists;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.FileUtil;
+import org.apache.hadoop.fs.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static com.turn.camino.util.Message.prefix;
 
@@ -47,7 +48,8 @@ public class FileSystemFunctions {
 	protected static abstract class AbstractDirList implements Function {
 
 		protected org.apache.hadoop.fs.Path[] dirList(FileSystem fileSystem,
-				org.apache.hadoop.fs.Path dirPath) throws FunctionCallException, IOException {
+				org.apache.hadoop.fs.Path dirPath, Optional<PathFilter> pathFilter)
+				throws FunctionCallException, IOException {
 
 			// check that path exists
 			if (!fileSystem.exists(dirPath)) {
@@ -62,7 +64,12 @@ public class FileSystemFunctions {
 			}
 
 			// perform directory listing
-			FileStatus fss[] = fileSystem.listStatus(dirPath);
+			FileStatus fss[];
+			if (pathFilter.isPresent()) {
+				fss = fileSystem.listStatus(dirPath, pathFilter.get());
+			} else {
+				fss = fileSystem.listStatus(dirPath);
+			}
 			return FileUtil.stat2Paths(fss);
 		}
 	}
@@ -73,12 +80,27 @@ public class FileSystemFunctions {
 	public static class DirList extends AbstractDirList {
 		@Override
 		public Object invoke(List<?> params, Context context) throws FunctionCallException {
-			VALIDATION.requireListSize(params, 1, 1, prefix("parameters"));
+			VALIDATION.requireListSize(params, 1, 2, prefix("parameters"));
 			String dir = VALIDATION.requireType(params.get(0), String.class, prefix("arg0"));
+			Optional<PathFilter> pathFilter = Optional.empty();
+			if (params.size() > 1) {
+				Function predicate = VALIDATION.requireType(params.get(1), Function.class,
+						prefix("filter"));
+				pathFilter = Optional.of(path -> {
+					try {
+						Object result = predicate.invoke(ImmutableList.of(path.toUri().getPath()),
+								context);
+						return VALIDATION.requireType(result, Boolean.class,
+								Message.full("File filter predicate must return boolean value"));
+					} catch (FunctionCallException e) {
+						throw new RuntimeException(e);
+					}
+				});
+			}
 			org.apache.hadoop.fs.Path dirPath = new org.apache.hadoop.fs.Path(dir);
 			FileSystem dfs = context.getEnv().getFileSystem();
 			try {
-				org.apache.hadoop.fs.Path[] paths = dirList(dfs, dirPath);
+				org.apache.hadoop.fs.Path[] paths = dirList(dfs, dirPath, pathFilter);
 				ArrayList<String> list = Lists.newArrayListWithExpectedSize(paths.length);
 				for (org.apache.hadoop.fs.Path path : paths) {
 					list.add(path.toUri().getPath());
@@ -97,12 +119,27 @@ public class FileSystemFunctions {
 		@Override
 		@SuppressWarnings("unchecked")
 		public Object invoke(List<?> params, Context context) throws FunctionCallException {
-			VALIDATION.requireListSize(params, 1, 1, prefix("parameters"));
+			VALIDATION.requireListSize(params, 1, 2, prefix("parameters"));
 			String dir = VALIDATION.requireType(params.get(0), String.class, prefix("arg0"));
+			Optional<PathFilter> pathFilter = Optional.empty();
+			if (params.size() > 1) {
+				Function predicate = VALIDATION.requireType(params.get(1), Function.class,
+						prefix("filter"));
+				pathFilter = Optional.of(path -> {
+					try {
+						Object result = predicate.invoke(ImmutableList.of(path.getName()),
+								context);
+						return VALIDATION.requireType(result, Boolean.class,
+								Message.full("File filter predicate must return boolean value"));
+					} catch (FunctionCallException e) {
+						throw new RuntimeException(e);
+					}
+				});
+			}
 			org.apache.hadoop.fs.Path dirPath = new org.apache.hadoop.fs.Path(dir);
 			FileSystem dfs = context.getEnv().getFileSystem();
 			try {
-				org.apache.hadoop.fs.Path[] paths = dirList(dfs, dirPath);
+				org.apache.hadoop.fs.Path[] paths = dirList(dfs, dirPath, pathFilter);
 				ArrayList<String> list = Lists.newArrayListWithExpectedSize(paths.length);
 				for (org.apache.hadoop.fs.Path path : paths) {
 					list.add(path.getName());

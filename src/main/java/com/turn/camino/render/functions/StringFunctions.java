@@ -15,6 +15,7 @@
 package com.turn.camino.render.functions;
 
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
 import com.turn.camino.Context;
 import com.turn.camino.render.Function;
 import com.turn.camino.render.FunctionCallException;
@@ -35,13 +36,36 @@ public class StringFunctions {
 	private final static Validation<FunctionCallException> VALIDATION =
 			new Validation<>(new FunctionCallExceptionFactory());
 
+	public static class Match implements Function {
+		@Override
+		public Object invoke(List<?> params, Context context) throws FunctionCallException {
+			VALIDATION.requireListSize(params, 2, 2, prefix("parameters"));
+			String string = VALIDATION.requireType(params.get(0), String.class, prefix("string"));
+			String pattern = VALIDATION.requireType(params.get(1), String.class, prefix("pattern"));
+			return string.matches(pattern);
+		}
+	}
+
+	public static class Matcher implements Function {
+		@Override
+		public Object invoke(List<?> params, Context context) throws FunctionCallException {
+			VALIDATION.requireListSize(params, 1, 1, prefix("parameters"));
+			String pattern = VALIDATION.requireType(params.get(0), String.class, prefix("pattern"));
+			return (Function) (params1, context1) -> {
+				VALIDATION.requireListSize(params1, 1, 1, prefix("parameters"));
+				return FunctionEnum.MATCH.getFunction().invoke(ImmutableList.of(params1.get(0),
+						pattern), context1);
+			};
+		}
+	}
+
 	public static class Replace implements Function {
 		@Override
 		public Object invoke(List<?> params, Context context) throws FunctionCallException {
 			VALIDATION.requireListSize(params, 3, 3, prefix("parameters"));
-			String string = VALIDATION.requireType(params.get(0), String.class, prefix("arg0"));
-			String pattern = VALIDATION.requireType(params.get(1), String.class, prefix("arg1"));
-			String replacement = VALIDATION.requireType(params.get(2), String.class, prefix("arg2"));
+			String string = VALIDATION.requireType(params.get(0), String.class, prefix("string"));
+			String pattern = VALIDATION.requireType(params.get(1), String.class, prefix("pattern"));
+			String replacement = VALIDATION.requireType(params.get(2), String.class, prefix("replacement"));
 			return string.replace(pattern, replacement);
 		}
 	}
@@ -50,9 +74,9 @@ public class StringFunctions {
 		@Override
 		public Object invoke(List<?> params, Context context) throws FunctionCallException {
 			VALIDATION.requireListSize(params, 3, 3, prefix("parameters"));
-			String string = VALIDATION.requireType(params.get(0), String.class, prefix("arg0"));
-			String pattern = VALIDATION.requireType(params.get(1), String.class, prefix("arg1"));
-			String replacement = VALIDATION.requireType(params.get(2), String.class, prefix("arg2"));
+			String string = VALIDATION.requireType(params.get(0), String.class, prefix("string"));
+			String pattern = VALIDATION.requireType(params.get(1), String.class, prefix("pattern"));
+			String replacement = VALIDATION.requireType(params.get(2), String.class, prefix("replacement"));
 			return string.replaceAll(pattern, replacement);
 		}
 	}
@@ -61,9 +85,10 @@ public class StringFunctions {
 		@Override
 		public Object invoke(List<?> params, Context context) throws FunctionCallException {
 			VALIDATION.requireListSize(params, 2, 2, prefix("parameters"));
-			String string = VALIDATION.requireType(params.get(0), String.class, prefix("arg0"));
-			String pattern = VALIDATION.requireType(params.get(1), String.class, prefix("arg1"));
+			String string = VALIDATION.requireType(params.get(0), String.class, prefix("string"));
+			String pattern = VALIDATION.requireType(params.get(1), String.class, prefix("pattern"));
 			return Splitter.on(pattern).splitToList(string);
 		}
 	}
+
 }

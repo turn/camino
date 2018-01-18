@@ -420,11 +420,14 @@ public class CaminoTest {
 		List<Path> paths = of(new Path("big_data", "/app/big_data"),
 				new Path("small_data", "/app/small_data"));
 		ExecutorService executorService = mock(ExecutorService.class);
+		Future future1 = mock(PathMetricsFuture.class);
+		Future future2 = mock(PathMetricsFuture.class);
+		when(executorService.submit(any(Callable.class))).thenReturn(future1, future2);
 		List<Future<PathMetrics>> futures = mock(PathMetricsFutureList.class);
 		camino.processPathMetrics(paths, mock(Renderer.class), mock(Context.class),
 				executorService, futures);
 		verify(executorService, times(2)).submit(any(Callable.class));
-		verify(futures, times(2)).add(any(PathMetricsFuture.class));
+		verify(futures, times(2)).add(any(Future.class));
 	}
 
 	/**

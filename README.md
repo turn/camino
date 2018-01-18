@@ -324,6 +324,12 @@ Currently there are a number Camino classes that have member access:
 
 Camino EL provides a number of built-in functions.
 
+#### Common functions
+
+- *compare(value1, value1)*: Compares two values using their natural
+    ordering. Equivalent to Java _value1.compareTo(value2)_.
+- *invert
+
 #### Math functions
 
 - *add(lhs, rhs)*: Adds two numbers and return result.
@@ -340,6 +346,18 @@ Camino EL provides a number of built-in functions.
 - *ltEq(lhs, rhs)*: Tests if _lhs_ is less than or equal to _rhs_.
 - *gtEq(lhs, rhs)*: Tests if _lhs_ is greater than or equal to _rhs_.
 - *not(boolVal)*: Inverts value of boolVal.
+
+#### String functions
+
+- *match(string, pattern)*: Tests if _string_ matches regex _pattern_.
+- *matcher(string, pattern)*: Creates a matcher function that tests if _string_ 
+	matches _pattern_. Useful to pass into another function as a predicate.
+- *replace(string, substring, replacement)*: Replaces occurrence of _substring_
+	in _string_ with _replacement_.
+- *replaceRegex(string, pattern, replacement)*: Replaces occurrence of regex
+	_pattern_ in _string_ with _replacement_.
+- *split(string, pattern)*: Splits a string into a list using regex _pattern_ 
+	as delimiter.
 
 #### Time functions
 
@@ -373,6 +391,15 @@ Camino EL provides a number of built-in functions.
 - *dict(...)*: Creates a dictionary. Accepts even number of arguments, where
 	argument _2*i_ is the key and _2*i+1_ is the value.
 - *dictGet(dict, key)*: Gets a value from dictionary given a key.
+- *sort(list, [comparator])*: Sorts a list using optional _comparator_. 
+    If _comparator_ is not specified, use the _compare_ function by default. 
+
+#### File system functions
+
+- *dirList(path, [filter])*: Returns full path of content under _path_,
+	with optional _filter_ predicate to match paths.
+- *dirListName(path, [filter])*: Returns file name of content under _path_,
+	with optional _filter_ predicate to match paths.
 
 Code Example
 ------------

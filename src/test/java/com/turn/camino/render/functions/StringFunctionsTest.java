@@ -16,6 +16,7 @@ package com.turn.camino.render.functions;
 
 import com.turn.camino.Context;
 import com.turn.camino.Env;
+import com.turn.camino.render.Function;
 import com.turn.camino.render.FunctionCallException;
 
 import com.google.common.collect.ImmutableList;
@@ -28,6 +29,8 @@ import java.util.TimeZone;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertTrue;
 
 /**
  * Tests for string functions
@@ -38,6 +41,8 @@ import static org.testng.Assert.assertEquals;
 public class StringFunctionsTest {
 
 	private Context context;
+	private StringFunctions.Match match = new StringFunctions.Match();
+	private StringFunctions.Matcher matcher = new StringFunctions.Matcher();
 	private StringFunctions.Replace replace = new StringFunctions.Replace();
 	private StringFunctions.ReplaceRegex replaceRegex = new StringFunctions.ReplaceRegex();
 	private StringFunctions.Split split = new StringFunctions.Split();
@@ -53,6 +58,28 @@ public class StringFunctionsTest {
 		when(context.getEnv()).thenReturn(env);
 		when(env.getCurrentTime()).thenReturn(1409389256296L);
 		when(env.getTimeZone()).thenReturn(TimeZone.getTimeZone("GMT"));
+	}
+
+	@Test
+	public void testMatch() throws FunctionCallException {
+		Object result = match.invoke(ImmutableList.of("hello person!", ".*erso.*"),
+				context);
+		assertEquals(result.getClass(), Boolean.class);
+		assertTrue((Boolean) result);
+		result = match.invoke(ImmutableList.of("hello person!", "dude"),
+				context);
+		assertFalse((Boolean) result);
+	}
+
+	@Test
+	public void testMatcher() throws FunctionCallException {
+		Object result = matcher.invoke(ImmutableList.of(".*erso.*"), context);
+		assertTrue(result instanceof Function);
+		Function function = (Function) result;
+		result = function.invoke(ImmutableList.of("hello person!"), context);
+		assertTrue((Boolean) result);
+		result = function.invoke(ImmutableList.of("hello dude!"), context);
+		assertFalse((Boolean) result);
 	}
 
 	@Test
