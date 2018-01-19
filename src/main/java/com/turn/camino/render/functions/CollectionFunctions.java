@@ -14,8 +14,6 @@
  */
 package com.turn.camino.render.functions;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import com.turn.camino.Context;
 import com.turn.camino.render.Function;
 import com.turn.camino.render.FunctionCallException;
@@ -25,6 +23,8 @@ import com.turn.camino.util.Validation;
 
 import java.util.*;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 /**
