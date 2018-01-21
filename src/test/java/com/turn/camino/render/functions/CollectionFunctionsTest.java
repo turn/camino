@@ -17,6 +17,7 @@ package com.turn.camino.render.functions;
 import com.google.common.collect.ImmutableMap;
 import com.turn.camino.Context;
 import com.turn.camino.Env;
+import com.turn.camino.render.Function;
 import com.turn.camino.render.FunctionCallException;
 
 import java.util.List;
@@ -46,6 +47,7 @@ public class CollectionFunctionsTest {
 	private CollectionFunctions.ListGet listGet = new CollectionFunctions.ListGet();
 	private CollectionFunctions.ListFirst listFirst = new CollectionFunctions.ListFirst();
 	private CollectionFunctions.ListLast listLast = new CollectionFunctions.ListLast();
+	private CollectionFunctions.Sort sort = new CollectionFunctions.Sort();
 	private CollectionFunctions.DictCreate dictCreate = new CollectionFunctions.DictCreate();
 	private CollectionFunctions.DictGet dictGet = new CollectionFunctions.DictGet();
 
@@ -182,6 +184,50 @@ public class CollectionFunctionsTest {
 	public void testListLastEmptyList() throws FunctionCallException {
 		List<?> list = ImmutableList.of();
 		listLast.invoke(ImmutableList.of(list), context);
+	}
+
+	/**
+	 * Test sort function
+	 *
+	 * @throws FunctionCallException
+	 */
+	@Test
+	@SuppressWarnings("unchecked")
+	public void testSort() throws FunctionCallException {
+		List<String> list = ImmutableList.of("k", "n", "a", "v", "e");
+		Object result = sort.invoke(ImmutableList.of(list),
+				context);
+		assertTrue(result instanceof List);
+		List<String> sortedList = (List<String>) result;
+		assertEquals(sortedList.size(), 5);
+		assertEquals(sortedList.get(0), "a");
+		assertEquals(sortedList.get(1), "e");
+		assertEquals(sortedList.get(2), "k");
+		assertEquals(sortedList.get(3), "n");
+		assertEquals(sortedList.get(4), "v");
+	}
+
+	/**
+	 * Test sort function
+	 *
+	 * @throws FunctionCallException
+	 */
+	@Test
+	@SuppressWarnings("unchecked")
+	public void testSortWithComparator() throws FunctionCallException {
+		Function comparator = (params, context) -> -1 * ((Integer) FunctionEnum.COMPARE
+				.getFunction().invoke(params, context));
+		List<Integer> list = ImmutableList.of(7, 1, 5, -1, 3);
+		Object result = sort.invoke(ImmutableList.of(list, comparator),
+				context);
+		assertTrue(result instanceof List);
+		List<Integer> sortedList = (List<Integer>) result;
+		assertEquals(sortedList.size(), 5);
+		assertEquals(sortedList.get(0).intValue(), 7);
+		assertEquals(sortedList.get(1).intValue(), 5);
+		assertEquals(sortedList.get(2).intValue(), 3);
+		assertEquals(sortedList.get(3).intValue(), 1);
+		assertEquals(sortedList.get(4).intValue(), -1);
 	}
 
 	/**

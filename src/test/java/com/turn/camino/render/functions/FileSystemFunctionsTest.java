@@ -16,11 +16,13 @@ package com.turn.camino.render.functions;
 
 import com.turn.camino.Context;
 import com.turn.camino.Env;
+import com.turn.camino.render.Function;
 import com.turn.camino.render.FunctionCallException;
 
 import com.google.common.collect.ImmutableList;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.PathFilter;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -28,9 +30,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.TimeZone;
 
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
 
@@ -64,13 +64,21 @@ public class FileSystemFunctionsTest {
 		org.apache.hadoop.fs.Path dir = new org.apache.hadoop.fs.Path("/a/b");
 		when(fileSystem.exists(dir)).thenReturn(true);
 		when(fileSystem.isDirectory(dir)).thenReturn(true);
+		when(fileSystem.getFileStatus(dir)).thenReturn(new FileStatus(0L, true, 3,
+				100L, 1409302844187L, dir));
 		when(fileSystem.listStatus(dir)).thenReturn(fss);
+		doCallRealMethod().when(fileSystem).listStatus(any(org.apache.hadoop.fs.Path.class),
+				any(PathFilter.class));
 
+		dir = new org.apache.hadoop.fs.Path("/x/y");
 		when(fileSystem.exists(new org.apache.hadoop.fs.Path("/x/y"))).thenReturn(false);
+		when(fileSystem.getFileStatus(dir)).thenReturn(null);
 
 		dir = new org.apache.hadoop.fs.Path("/u/v");
 		when(fileSystem.exists(dir)).thenReturn(true);
 		when(fileSystem.isDirectory(dir)).thenReturn(false);
+		when(fileSystem.getFileStatus(dir)).thenReturn(new FileStatus(0L, true, 3,
+				100L, 1409302844187L, dir));
 
 		doThrow(new IOException()).when(fileSystem).listStatus(new org.apache.hadoop.fs.Path("/foo"));
 
@@ -94,6 +102,19 @@ public class FileSystemFunctionsTest {
 		assertEquals(list.get(0), "/a/b/1.dat");
 		assertEquals(list.get(1), "/a/b/2.dat");
 		assertEquals(list.get(2), "/a/b/3.dat");
+	}
+
+	/**
+	 * Test directory listing with filter
+	 */
+	@Test
+	public void testDirListWithFilter() throws FunctionCallException {
+		Function predicate = (params, context) -> params.get(0).toString().endsWith("1.dat");
+		Object result = dirList.invoke(ImmutableList.of("/a/b", predicate), context);
+		assertTrue(result instanceof List);
+		List<?> list = (List<?>) result;
+		assertEquals(list.size(), 1);
+		assertEquals(list.get(0), "/a/b/1.dat");
 	}
 
 	/**
@@ -138,6 +159,20 @@ public class FileSystemFunctionsTest {
 		assertEquals(list.get(0), "1.dat");
 		assertEquals(list.get(1), "2.dat");
 		assertEquals(list.get(2), "3.dat");
+	}
+
+	/**
+	 * Test directory listing with filter
+	 */
+	@Test
+	public void testDirListNameWithFilter() throws FunctionCallException {
+		Function predicate = (params, context) -> params.get(0).toString().matches("[12].dat");
+		Object result = dirListName.invoke(ImmutableList.of("/a/b", predicate), context);
+		assertTrue(result instanceof List);
+		List<?> list = (List<?>) result;
+		assertEquals(list.size(), 2);
+		assertEquals(list.get(0), "1.dat");
+		assertEquals(list.get(1), "2.dat");
 	}
 
 	/**

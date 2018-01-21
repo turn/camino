@@ -26,6 +26,9 @@ import java.util.Map;
  */
 public enum FunctionEnum {
 
+	// common functions
+	COMPARE("compare", new CommonFunctions.Compare()),
+
 	// math functions
 	ADD("add", new MathFunctions.Add()),
 	SUB("sub", new MathFunctions.Subtract()),
@@ -42,6 +45,8 @@ public enum FunctionEnum {
 	GTEQ("gtEq", new LogicFunctions.GtEq()),
 
 	// string functions
+	MATCH("match", new StringFunctions.Match()),
+	MATCHER("matcher", new StringFunctions.Matcher()),
 	REPLACE("replace", new StringFunctions.Replace()),
 	REPLACE_REGEXP("replaceRegex", new StringFunctions.ReplaceRegex()),
 	SPLIT("split", new StringFunctions.Split()),
@@ -63,6 +68,7 @@ public enum FunctionEnum {
 	LIST_LAST("listLast", new CollectionFunctions.ListLast()),
 	DICT("dict", new CollectionFunctions.DictCreate()),
 	DICT_GET("dictGet", new CollectionFunctions.DictGet()),
+	SORT("sort", new CollectionFunctions.Sort()),
 
 	// file system functions
 	DIR_LIST("dirList", new FileSystemFunctions.DirList()),

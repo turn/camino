@@ -21,11 +21,10 @@ import com.turn.camino.render.FunctionCallExceptionFactory;
 import com.turn.camino.util.Message;
 import com.turn.camino.util.Validation;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 /**
@@ -106,6 +105,36 @@ public class CollectionFunctions {
 			} else {
 				throw new FunctionCallException("Cannot get last element of empty list");
 			}
+		}
+	}
+
+	/**
+	 * Function to sort a list
+	 */
+	public static class Sort implements Function {
+		@Override
+		public Object invoke(List<?> params, Context context) throws FunctionCallException {
+			VALIDATION.requireListSize(params, 1, 2, Message.prefix("parameters"));
+			List<?> list = VALIDATION.requireType(params.get(0), List.class,
+					Message.prefix("list"));
+			Function function;
+			if (params.size() > 1) {
+				function = VALIDATION.requireType(params.get(1), Function.class,
+						Message.prefix("comparator"));
+			} else {
+				function = FunctionEnum.COMPARE.getFunction();
+			}
+			List<?> newList = Lists.newArrayList(list);
+			newList.sort((a, b) -> {
+				try {
+					Object value = function.invoke(ImmutableList.of(a, b), context);
+					return VALIDATION.requireType(value, Integer.class,
+							Message.full("Comparator function must return integer value"));
+				} catch (FunctionCallException e) {
+					throw new RuntimeException(e);
+				}
+			});
+			return newList;
 		}
 	}
 
