@@ -50,6 +50,8 @@ public enum FunctionEnum {
 	REPLACE("replace", new StringFunctions.Replace()),
 	REPLACE_REGEXP("replaceRegex", new StringFunctions.ReplaceRegex()),
 	SPLIT("split", new StringFunctions.Split()),
+	JOIN("join", new StringFunctions.Join()),
+	CONCAT("concat", new StringFunctions.Concat()),
 
 	// time functions
 	NOW("now", new TimeFunctions.Now()),

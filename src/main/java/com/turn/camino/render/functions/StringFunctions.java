@@ -14,6 +14,7 @@
  */
 package com.turn.camino.render.functions;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.turn.camino.Context;
@@ -88,6 +89,24 @@ public class StringFunctions {
 			String string = VALIDATION.requireType(params.get(0), String.class, prefix("string"));
 			String pattern = VALIDATION.requireType(params.get(1), String.class, prefix("pattern"));
 			return Splitter.on(pattern).splitToList(string);
+		}
+	}
+
+	public static class Join implements Function {
+		@Override
+		public Object invoke(List<?> params, Context context) throws FunctionCallException {
+			VALIDATION.requireListSize(params, 2, 2, prefix("parameters"));
+			List<?> list = VALIDATION.requireType(params.get(0), List.class, prefix("list"));
+			String delimiter = VALIDATION.requireType(params.get(1), String.class,
+					prefix("delimiter"));
+			return Joiner.on(delimiter).join(list);
+		}
+	}
+
+	public static class Concat implements Function {
+		@Override
+		public Object invoke(List<?> params, Context context) throws FunctionCallException {
+			return Joiner.on("").join(params);
 		}
 	}
 
