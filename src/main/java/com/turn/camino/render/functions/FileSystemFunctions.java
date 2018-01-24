@@ -151,4 +151,42 @@ public class FileSystemFunctions {
 		}
 	}
 
+	/**
+	 * Function to test if path exists
+	 */
+	public static class Exists implements Function {
+
+		@Override
+		public Object invoke(List<?> params, Context context) throws FunctionCallException {
+			VALIDATION.requireListSize(params, 1, 1, prefix("parameters"));
+			String path = VALIDATION.requireType(params.get(0), String.class, prefix("path"));
+			org.apache.hadoop.fs.Path fsPath = new org.apache.hadoop.fs.Path(path);
+			FileSystem fs = context.getEnv().getFileSystem();
+			try {
+				return fs.exists(fsPath);
+			} catch (IOException e) {
+				throw new FunctionCallException("Unexpected exception testing if path exists");
+			}
+		}
+	}
+
+	/**
+	 * Function to test if path is directory
+	 */
+	public static class IsDir implements Function {
+
+		@Override
+		public Object invoke(List<?> params, Context context) throws FunctionCallException {
+			VALIDATION.requireListSize(params, 1, 1, prefix("parameters"));
+			String path = VALIDATION.requireType(params.get(0), String.class, prefix("path"));
+			org.apache.hadoop.fs.Path fsPath = new org.apache.hadoop.fs.Path(path);
+			FileSystem fs = context.getEnv().getFileSystem();
+			try {
+				return fs.exists(fsPath) && fs.isDirectory(fsPath);
+			} catch (IOException e) {
+				throw new FunctionCallException("Unexpected exception testing if path is directory");
+			}
+		}
+	}
+
 }

@@ -75,6 +75,8 @@ public enum FunctionEnum {
 	// file system functions
 	DIR_LIST("dirList", new FileSystemFunctions.DirList()),
 	DIR_LIST_NAME("dirListName", new FileSystemFunctions.DirListName()),
+	EXISTS("exists", new FileSystemFunctions.Exists()),
+	IS_DIR("isDir", new FileSystemFunctions.IsDir()),
 
 	// metric functions
 	METRIC_AGG("metricAgg", new MetricFunctions.MetricAggregateFunction()),

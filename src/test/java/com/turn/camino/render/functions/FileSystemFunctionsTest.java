@@ -32,6 +32,7 @@ import java.util.TimeZone;
 
 import static org.mockito.Mockito.*;
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
 
 /**
@@ -45,6 +46,8 @@ public class FileSystemFunctionsTest {
 	private Context context;
 	private FileSystemFunctions.DirList dirList = new FileSystemFunctions.DirList();
 	private FileSystemFunctions.DirListName dirListName = new FileSystemFunctions.DirListName();
+	private FileSystemFunctions.Exists exists = new FileSystemFunctions.Exists();
+	private FileSystemFunctions.IsDir isDir = new FileSystemFunctions.IsDir();
 
 	/**
 	 * Set up environment
@@ -185,4 +188,25 @@ public class FileSystemFunctionsTest {
 		dirListName.invoke(ImmutableList.of("/foo"), context);
 	}
 
+	/**
+	 * Test exists function
+	 *
+	 * @throws FunctionCallException
+	 */
+	@Test
+	public void testExists() throws FunctionCallException {
+		assertTrue((Boolean) exists.invoke(ImmutableList.of("/a/b"), context));
+		assertFalse((Boolean) exists.invoke(ImmutableList.of("/a/e"), context));
+	}
+
+	/**
+	 * Tet isDir function
+	 *
+	 * @throws FunctionCallException
+	 */
+	@Test
+	public void testIsDir() throws FunctionCallException {
+		assertTrue((Boolean) isDir.invoke(ImmutableList.of("/a/b"), context));
+		assertFalse((Boolean) isDir.invoke(ImmutableList.of("/a/b/1.dat"), context));
+	}
 }
