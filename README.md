@@ -358,6 +358,8 @@ Camino EL provides a number of built-in functions.
 	_pattern_ in _string_ with _replacement_.
 - *split(string, pattern)*: Splits a string into a list using regex _pattern_ 
 	as delimiter.
+- *join(string, delimiter)*: Joins a list into a string separated by _delimiter_.
+- *concat(...)*: Concatenates all parameters into a single string.
 
 #### Time functions
 

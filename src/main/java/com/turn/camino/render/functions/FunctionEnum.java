@@ -50,6 +50,8 @@ public enum FunctionEnum {
 	REPLACE("replace", new StringFunctions.Replace()),
 	REPLACE_REGEXP("replaceRegex", new StringFunctions.ReplaceRegex()),
 	SPLIT("split", new StringFunctions.Split()),
+	JOIN("join", new StringFunctions.Join()),
+	CONCAT("concat", new StringFunctions.Concat()),
 
 	// time functions
 	NOW("now", new TimeFunctions.Now()),
@@ -73,6 +75,8 @@ public enum FunctionEnum {
 	// file system functions
 	DIR_LIST("dirList", new FileSystemFunctions.DirList()),
 	DIR_LIST_NAME("dirListName", new FileSystemFunctions.DirListName()),
+	EXISTS("exists", new FileSystemFunctions.Exists()),
+	IS_DIR("isDir", new FileSystemFunctions.IsDir()),
 
 	// metric functions
 	METRIC_AGG("metricAgg", new MetricFunctions.MetricAggregateFunction()),

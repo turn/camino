@@ -46,6 +46,8 @@ public class StringFunctionsTest {
 	private StringFunctions.Replace replace = new StringFunctions.Replace();
 	private StringFunctions.ReplaceRegex replaceRegex = new StringFunctions.ReplaceRegex();
 	private StringFunctions.Split split = new StringFunctions.Split();
+	private StringFunctions.Join join = new StringFunctions.Join();
+	private StringFunctions.Concat concat = new StringFunctions.Concat();
 
 	/**
 	 * Set up environment
@@ -126,6 +128,20 @@ public class StringFunctionsTest {
 		assertEquals(list.get(0), "a");
 		assertEquals(list.get(1), "b");
 		assertEquals(list.get(2), "c");
+	}
+
+	@Test
+	public void testJoin() throws FunctionCallException {
+		List<String> list = ImmutableList.of("a", "b", "c");
+		String string = (String) join.invoke(ImmutableList.of(list, "/"), context);
+		assertEquals(string, "a/b/c");
+	}
+
+	@Test
+	public void testConcat() throws FunctionCallException {
+		List<String> list = ImmutableList.of("a", "b", "c");
+		String string = (String) concat.invoke(list, context);
+		assertEquals(string, "abc");
 	}
 
 }
